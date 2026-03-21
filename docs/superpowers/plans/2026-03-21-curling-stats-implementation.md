@@ -309,6 +309,15 @@ describe('Database', () => {
     expect(colNames).toContain('status');
   });
 
+  it('ends table has hammer column', () => {
+    db = createDb(':memory:');
+
+    const columns = db.pragma('table_info(ends)') as Array<{ name: string }>;
+    const colNames = columns.map((c) => c.name);
+
+    expect(colNames).toContain('hammer');
+  });
+
   it('shots table has is_throwaway column', () => {
     db = createDb(':memory:');
 
@@ -362,6 +371,7 @@ export interface EndRow {
   number: number;
   score_home: number;
   score_away: number;
+  hammer: TeamSide;
 }
 
 export interface ShotRow {
@@ -403,6 +413,7 @@ export interface CreateEndBody {
   number: number;
   score_home: number;
   score_away: number;
+  hammer: TeamSide;
 }
 
 export interface GameWithDetails extends GameRow {
@@ -469,6 +480,7 @@ export function createDb(path: string): AppDatabase {
       number INTEGER NOT NULL CHECK(number >= 1),
       score_home INTEGER NOT NULL DEFAULT 0,
       score_away INTEGER NOT NULL DEFAULT 0,
+      hammer TEXT NOT NULL CHECK(hammer IN ('home', 'away')),
       UNIQUE(game_id, number)
     );
 
@@ -523,8 +535,8 @@ Create `server/__tests__/routes/games.test.ts`:
 ```typescript
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import supertest from 'supertest';
-import { createApp } from '../src/index.js';
-import type { GameRow, GameWithDetails } from '../src/types.js';
+import { createApp } from '../../src/index.js';
+import type { GameRow, GameWithDetails } from '../../src/types.js';
 
 describe('Games API', () => {
   let request: ReturnType<typeof supertest>;
@@ -695,7 +707,8 @@ export function createApp(dbPath: string): { app: express.Express; close: () => 
 const isMainModule = process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js');
 if (isMainModule) {
   const PORT = process.env['PORT'] ?? 3001;
-  const { app } = createApp('./curling-stats.db');
+  const dbPath = process.env['DB_PATH'] ?? './curling-stats.db';
+  const { app } = createApp(dbPath);
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
@@ -824,8 +837,8 @@ Create `server/__tests__/routes/shots.test.ts`:
 ```typescript
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import supertest from 'supertest';
-import { createApp } from '../src/index.js';
-import type { GameRow, ShotRow } from '../src/types.js';
+import { createApp } from '../../src/index.js';
+import type { GameRow, ShotRow } from '../../src/types.js';
 
 describe('Shots API', () => {
   let request: ReturnType<typeof supertest>;
@@ -1084,8 +1097,8 @@ Create `server/__tests__/routes/ends.test.ts`:
 ```typescript
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import supertest from 'supertest';
-import { createApp } from '../src/index.js';
-import type { GameRow, EndRow } from '../src/types.js';
+import { createApp } from '../../src/index.js';
+import type { GameRow, EndRow } from '../../src/types.js';
 
 describe('Ends API', () => {
   let request: ReturnType<typeof supertest>;
@@ -1115,6 +1128,7 @@ describe('Ends API', () => {
         number: 1,
         score_home: 2,
         score_away: 0,
+        hammer: 'home',
       });
 
       expect(res.status).toBe(201);
@@ -1123,6 +1137,7 @@ describe('Ends API', () => {
         number: 1,
         score_home: 2,
         score_away: 0,
+        hammer: 'home',
       });
     });
 
@@ -1131,28 +1146,38 @@ describe('Ends API', () => {
         number: 1,
         score_home: 0,
         score_away: 0,
+        hammer: 'away',
       });
 
       expect(res.status).toBe(201);
       expect(res.body.score_home).toBe(0);
       expect(res.body.score_away).toBe(0);
+      expect(res.body.hammer).toBe('away');
     });
 
     it('rejects duplicate end number', async () => {
       await request.post(`/api/games/${gameId}/ends`).send({
-        number: 1, score_home: 1, score_away: 0,
+        number: 1, score_home: 1, score_away: 0, hammer: 'home',
       });
 
       const res = await request.post(`/api/games/${gameId}/ends`).send({
-        number: 1, score_home: 0, score_away: 2,
+        number: 1, score_home: 0, score_away: 2, hammer: 'away',
       });
 
       expect(res.status).toBe(409);
     });
 
+    it('returns 400 for missing hammer', async () => {
+      const res = await request.post(`/api/games/${gameId}/ends`).send({
+        number: 1, score_home: 1, score_away: 0,
+      });
+
+      expect(res.status).toBe(400);
+    });
+
     it('returns 404 for non-existent game', async () => {
       const res = await request.post('/api/games/999/ends').send({
-        number: 1, score_home: 1, score_away: 0,
+        number: 1, score_home: 1, score_away: 0, hammer: 'home',
       });
 
       expect(res.status).toBe(404);
@@ -1190,8 +1215,8 @@ export function endsRouter(ctx: AppContext): Router {
 
     const body = req.body as Partial<CreateEndBody>;
 
-    if (body.number == null || body.score_home == null || body.score_away == null) {
-      res.status(400).json({ error: 'Missing required fields: number, score_home, score_away' });
+    if (body.number == null || body.score_home == null || body.score_away == null || body.hammer == null) {
+      res.status(400).json({ error: 'Missing required fields: number, score_home, score_away, hammer' });
       return;
     }
 
@@ -1205,9 +1230,9 @@ export function endsRouter(ctx: AppContext): Router {
     }
 
     const result = ctx.db.prepare(`
-      INSERT INTO ends (game_id, number, score_home, score_away)
-      VALUES (?, ?, ?, ?)
-    `).run(gameId, body.number, body.score_home, body.score_away);
+      INSERT INTO ends (game_id, number, score_home, score_away, hammer)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(gameId, body.number, body.score_home, body.score_away, body.hammer);
 
     const end = ctx.db.prepare('SELECT * FROM ends WHERE id = ?').get(result.lastInsertRowid) as EndRow;
     res.status(201).json(end);
@@ -1256,8 +1281,8 @@ git commit -m "feat(server): add ends API with tests"
 Create `server/__tests__/lib/statsCalc.test.ts`:
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { calculateGameStats } from '../src/lib/statsCalc.js';
-import type { ShotRow } from '../src/types.js';
+import { calculateGameStats } from '../../src/lib/statsCalc.js';
+import type { ShotRow } from '../../src/types.js';
 
 function makeShot(overrides: Partial<ShotRow>): ShotRow {
   return {
@@ -1478,8 +1503,8 @@ Create `server/__tests__/routes/stats.test.ts`:
 ```typescript
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import supertest from 'supertest';
-import { createApp } from '../src/index.js';
-import type { GameRow } from '../src/types.js';
+import { createApp } from '../../src/index.js';
+import type { GameRow } from '../../src/types.js';
 
 describe('Stats API', () => {
   let request: ReturnType<typeof supertest>;
@@ -2784,7 +2809,17 @@ EXPOSE 3001
 CMD ["node", "server/dist/index.js"]
 ```
 
-- [ ] **Step 2: Create docker-compose.yml**
+- [ ] **Step 2: Create .dockerignore**
+
+```
+node_modules
+*/dist
+*.db
+.env
+.git
+```
+
+- [ ] **Step 3: Create docker-compose.yml**
 
 ```yaml
 services:
@@ -2797,16 +2832,17 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
+      - DB_PATH=/app/data/curling-stats.db
 
 volumes:
   db-data:
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add -A
-git commit -m "chore: add Docker multi-stage build and docker-compose"
+git commit -m "chore: add Docker multi-stage build, docker-compose, .dockerignore"
 ```
 
 ---
