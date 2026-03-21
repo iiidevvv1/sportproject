@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import { createDb, type AppDatabase } from './db.js';
 import { gamesRouter } from './routes/games.js';
 import { shotsRouter } from './routes/shots.js';
@@ -23,6 +25,15 @@ export function createApp(dbPath: string): { app: express.Express; close: () => 
   app.use('/api/games/:id/shots', shotsRouter(ctx));
   app.use('/api/games/:id/ends', endsRouter(ctx));
   app.use('/api/games/:id/stats', statsRouter(ctx));
+
+  if (process.env['NODE_ENV'] === 'production') {
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const clientDist = join(__dirname, '../../client/dist');
+    app.use(express.static(clientDist));
+    app.get('/*splat', (_req, res) => {
+      res.sendFile(join(clientDist, 'index.html'));
+    });
+  }
 
   return {
     app,
