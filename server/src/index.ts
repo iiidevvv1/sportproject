@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { createDb, type AppDatabase } from './db.js';
 import { gamesRouter } from './routes/games.js';
+import { shotsRouter } from './routes/shots.js';
 
 export interface AppContext {
   db: AppDatabase;
@@ -17,6 +18,7 @@ export function createApp(dbPath: string): { app: express.Express; close: () => 
   const ctx: AppContext = { db };
 
   app.use('/api/games', gamesRouter(ctx));
+  app.use('/api/games/:id/shots', shotsRouter(ctx));
 
   return {
     app,
