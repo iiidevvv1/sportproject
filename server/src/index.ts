@@ -4,6 +4,7 @@ import { createDb, type AppDatabase } from './db.js';
 import { gamesRouter } from './routes/games.js';
 import { shotsRouter } from './routes/shots.js';
 import { endsRouter } from './routes/ends.js';
+import { statsRouter } from './routes/stats.js';
 
 export interface AppContext {
   db: AppDatabase;
@@ -21,6 +22,7 @@ export function createApp(dbPath: string): { app: express.Express; close: () => 
   app.use('/api/games', gamesRouter(ctx));
   app.use('/api/games/:id/shots', shotsRouter(ctx));
   app.use('/api/games/:id/ends', endsRouter(ctx));
+  app.use('/api/games/:id/stats', statsRouter(ctx));
 
   return {
     app,
