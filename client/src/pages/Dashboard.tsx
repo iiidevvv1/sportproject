@@ -117,8 +117,8 @@ export default function Dashboard() {
                   key={game.id}
                   game={game}
                   ends={[]}
-                  totalHome={0}
-                  totalAway={0}
+                  totalHome={game.score_home}
+                  totalAway={game.score_away}
                 />
               ))}
             </div>

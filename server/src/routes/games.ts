@@ -8,8 +8,16 @@ export function gamesRouter(ctx: AppContext): Router {
   // GET /api/games
   router.get('/', (_req: Request, res: Response) => {
     const games = ctx.db
-      .prepare('SELECT * FROM games ORDER BY id DESC')
-      .all() as GameRow[];
+      .prepare(`
+        SELECT g.*,
+          COALESCE(SUM(e.score_home), 0) AS score_home,
+          COALESCE(SUM(e.score_away), 0) AS score_away
+        FROM games g
+        LEFT JOIN ends e ON e.game_id = g.id
+        GROUP BY g.id
+        ORDER BY g.id DESC
+      `)
+      .all() as (GameRow & { score_home: number; score_away: number })[];
     res.json(games);
   });
 

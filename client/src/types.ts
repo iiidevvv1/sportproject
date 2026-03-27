@@ -19,6 +19,8 @@ export interface Game {
   max_ends: number;
   status: GameStatus;
   created_at: string;
+  score_home: number;
+  score_away: number;
 }
 
 export interface End {
