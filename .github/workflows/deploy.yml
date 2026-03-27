@@ -56,12 +56,18 @@ jobs:
           ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
           
           ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST 2>&1 | tee /tmp/deploy.log << 'EOF'
-          set -e
+          set -ex
+          echo "=== Starting deploy ==="
           cd /app
+          echo "=== Pulling latest code ==="
           git pull origin main
+          echo "=== Installing dependencies ==="
           NODE_ENV=development npm install
+          echo "=== Building ==="
           npm run build
+          echo "=== Pulling Docker images ==="
           docker-compose -f docker-compose.prod.yml pull || true
+          echo "=== Starting containers ==="
           docker-compose -f docker-compose.prod.yml up -d
           echo "✅ Deploy complete"
           EOF
