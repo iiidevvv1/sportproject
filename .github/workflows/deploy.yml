@@ -85,29 +85,27 @@ jobs:
           cat > /tmp/deploy_script.sh << 'DEPLOY_SCRIPT'
           set -ex
           
-          # Ensure docker compose v2 is available (v1.29.x causes KeyError 'ContainerConfig')
-          if ! docker compose version &>/dev/null; then
-            echo "=== Installing docker compose v2 plugin ==="
-            apt-get update -qq && apt-get install -y -qq docker-compose-plugin 2>/dev/null || {
-              mkdir -p /usr/local/lib/docker/cli-plugins
-              ARCH=$(uname -m)
-              curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${ARCH}" \
-                -o /usr/local/lib/docker/cli-plugins/docker-compose
-              chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
-            }
+          # Use docker compose v2 (built into modern Docker) or fallback to docker-compose v1
+          if docker compose version &>/dev/null; then
+            COMPOSE="docker compose"
+          elif docker-compose version &>/dev/null; then
+            COMPOSE="docker-compose"
+          else
+            echo "ERROR: neither 'docker compose' nor 'docker-compose' found"
+            exit 1
           fi
-          echo "=== docker compose version: $(docker compose version) ==="
+          echo "=== Using: $COMPOSE ($($COMPOSE version)) ==="
           
           echo "=== Starting deploy ==="
           cd /app
           echo "=== Pulling latest code ==="
           git pull origin main
           echo "=== Stopping old containers ==="
-          docker compose -f docker-compose.prod.yml down --remove-orphans
+          $COMPOSE -f docker-compose.prod.yml down --remove-orphans
           echo "=== Building Docker image ==="
-          docker compose -f docker-compose.prod.yml build --no-cache
+          $COMPOSE -f docker-compose.prod.yml build --no-cache
           echo "=== Starting containers ==="
-          docker compose -f docker-compose.prod.yml up -d
+          $COMPOSE -f docker-compose.prod.yml up -d
           echo "✅ Deploy complete"
           DEPLOY_SCRIPT
           
