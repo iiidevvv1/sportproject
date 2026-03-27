@@ -4,8 +4,15 @@ import { MemoryRouter } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import NewGame from '../../src/pages/NewGame';
 
-vi.mock('../../src/api', () => ({
-  createGame: vi.fn().mockResolvedValue({ id: 1 }),
+vi.mock('../../src/hooks/useGame', () => ({
+  useCreateGame: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+  }),
+  useGames: () => ({
+    data: [],
+    isLoading: false,
+  }),
 }));
 
 function renderWithProviders(ui: React.ReactElement) {
