@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+echo "🔍 Running pre-commit linter..."
+
+# Run lint
+if ! npm run lint 2>&1; then
+  echo "❌ Linter failed! Fix errors before committing."
+  exit 1
+fi
+
+echo "✅ Linter passed!"
+exit 0
