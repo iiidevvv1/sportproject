@@ -1,14 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ChevronLeft, ArrowRight, Info } from 'lucide-react';
 import Header from '../components/Header';
 import ColorPicker from '../components/ColorPicker';
-import { useCreateGame } from '../hooks/useGame';
+import { useCreateGame, useGames } from '../hooks/useGame';
 import type { StoneColor, TeamSide } from '../types';
 
 export default function NewGame() {
   const navigate = useNavigate();
   const createGame = useCreateGame();
+  const { data: games = [] } = useGames();
+  const hasActiveGame = games.some((g) => g.status === 'active');
+
+  useEffect(() => {
+    if (hasActiveGame) {
+      void navigate('/');
+    }
+  }, [hasActiveGame, navigate]);
 
   const [ourName, setOurName] = useState('');
   const [ourColor, setOurColor] = useState<StoneColor>('red');
@@ -57,7 +65,7 @@ export default function NewGame() {
           <div className="flex items-center gap-3">
             <div className="h-8 w-1.5 rounded-full bg-primary transition-colors" />
             <h2 className="font-headline font-bold text-xl tracking-tight text-[#0d1c2e]">
-              {ourName || 'Наша команда'}
+              Наша команда
             </h2>
           </div>
           <div className="bg-slate-50 p-6 rounded-xl space-y-6">

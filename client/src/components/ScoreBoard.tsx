@@ -12,27 +12,29 @@ export default function ScoreBoard({ game, currentEnd }: ScoreBoardProps) {
   const hammerThisEnd = getHammerForEnd(currentEnd, game.hammer_first_end, game.ends);
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-3">
       <div className="flex items-center gap-1">
-        <div
-          className="w-2.5 h-2.5 rounded-full shadow-sm"
-          style={{ backgroundColor: STONE_COLORS[game.color_home] }}
-        />
+        <span
+          className="font-headline font-extrabold text-xl"
+          style={{ color: STONE_COLORS[game.color_home] }}
+        >
+          {totalHome}
+        </span>
         {hammerThisEnd === 'home' && (
           <span className="text-[10px] font-bold" style={{ color: STONE_COLORS[game.color_home] }}>Х</span>
         )}
       </div>
-      <span className="font-headline font-extrabold tracking-widest text-xl text-primary">
-        {totalHome} : {totalAway}
-      </span>
+      <span className="font-headline font-extrabold text-xl text-slate-300">:</span>
       <div className="flex items-center gap-1">
         {hammerThisEnd === 'away' && (
           <span className="text-[10px] font-bold" style={{ color: STONE_COLORS[game.color_away] }}>Х</span>
         )}
-        <div
-          className="w-2.5 h-2.5 rounded-full shadow-sm"
-          style={{ backgroundColor: STONE_COLORS[game.color_away] }}
-        />
+        <span
+          className="font-headline font-extrabold text-xl"
+          style={{ color: STONE_COLORS[game.color_away] }}
+        >
+          {totalAway}
+        </span>
       </div>
     </div>
   );

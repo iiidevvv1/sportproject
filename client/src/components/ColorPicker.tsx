@@ -7,7 +7,7 @@ interface ColorPickerProps {
   disabledColor?: StoneColor;
 }
 
-const AVAILABLE_COLORS: StoneColor[] = ['red', 'yellow', 'blue', 'green', 'orange', 'purple', 'black', 'white'];
+const AVAILABLE_COLORS: StoneColor[] = ['red', 'yellow', 'blue', 'green'];
 
 export default function ColorPicker({ value, onChange, disabledColor }: ColorPickerProps) {
   return (

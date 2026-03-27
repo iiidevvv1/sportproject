@@ -4,7 +4,7 @@ export type GameStatus = 'active' | 'finished';
 export type TeamSide = 'home' | 'away';
 export type ShotType = 'draw' | 'takeout';
 export type TurnType = 'inturn' | 'outturn';
-export type StoneColor = 'red' | 'yellow' | 'blue' | 'green' | 'orange' | 'purple' | 'black' | 'white';
+export type StoneColor = 'red' | 'yellow' | 'blue' | 'green';
 export type ScoreValue = 0 | 25 | 50 | 75 | 100;
 export type PlayerPosition = 1 | 2 | 3 | 4;
 
@@ -78,10 +78,6 @@ export const STONE_COLORS: Record<StoneColor, string> = {
   yellow: '#fbcd17',
   blue: '#2f6388',
   green: '#2e7d32',
-  orange: '#f97316',
-  purple: '#7c3aed',
-  black: '#1e293b',
-  white: '#e2e8f0',
 };
 
 export const POSITION_NAMES: Record<PlayerPosition, string> = {

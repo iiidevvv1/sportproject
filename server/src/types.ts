@@ -4,7 +4,7 @@ export type GameStatus = 'active' | 'finished';
 export type TeamSide = 'home' | 'away';
 export type ShotType = 'draw' | 'takeout';
 export type TurnType = 'inturn' | 'outturn';
-export type StoneColor = 'red' | 'yellow' | 'blue' | 'green' | 'orange' | 'purple' | 'black' | 'white';
+export type StoneColor = 'red' | 'yellow' | 'blue' | 'green';
 export type ScoreValue = 0 | 25 | 50 | 75 | 100;
 
 export interface GameRow {

@@ -30,7 +30,7 @@ export function createApp(dbPath: string): { app: express.Express; close: () => 
     const __dirname = dirname(fileURLToPath(import.meta.url));
     const clientDist = join(__dirname, '../../client/dist');
     app.use(express.static(clientDist));
-    app.get('/*splat', (_req, res) => {
+    app.use((_req, res) => {
       res.sendFile(join(clientDist, 'index.html'));
     });
   }

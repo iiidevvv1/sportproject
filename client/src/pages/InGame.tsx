@@ -5,10 +5,10 @@ import Header from '../components/Header';
 import ScoreBoard from '../components/ScoreBoard';
 import ShotInput from '../components/ShotInput';
 import EndResult from '../components/EndResult';
-import { useGame } from '../hooks/useGame';
+import { useGame, useFinishGame } from '../hooks/useGame';
 import { useCreateShot, useCreateEnd } from '../hooks/useShots';
 import { getShotInfo, getHammerForEnd } from '../lib/shotOrder';
-import type { ShotType, TurnType, ScoreValue, TeamSide } from '../types';
+import { STONE_COLORS, type ShotType, type TurnType, type ScoreValue, type TeamSide } from '../types';
 
 const SHOTS_PER_END = 16;
 
@@ -20,6 +20,7 @@ export default function InGame() {
   const { data: game, isLoading } = useGame(gameId);
   const createShot = useCreateShot(gameId);
   const createEnd = useCreateEnd(gameId);
+  const finishGame = useFinishGame();
 
   const [shotType, setShotType] = useState<ShotType>('draw');
   const [shotTurn, setShotTurn] = useState<TurnType>('inturn');
@@ -100,7 +101,10 @@ export default function InGame() {
   };
 
   const handleFinish = () => {
-    void navigate(`/games/${gameId}/stats`);
+    if (!confirm('Завершить игру досрочно?')) return;
+    finishGame.mutate(gameId, {
+      onSuccess: () => void navigate('/'),
+    });
   };
 
   return (
@@ -124,7 +128,10 @@ export default function InGame() {
             <h2 className="font-headline flex items-center gap-2">
               <span className="text-2xl font-extrabold text-[#0d1c2e]">{shotInfo.positionName}</span>
               <span className="text-xl font-extrabold text-slate-300">•</span>
-              <span className="text-2xl font-extrabold text-primary">
+              <span
+                className="text-2xl font-extrabold"
+                style={{ color: STONE_COLORS[shotInfo.team === 'home' ? game.color_home : game.color_away] }}
+              >
                 {shotInfo.team === 'home' ? game.team_home : game.team_away}
               </span>
             </h2>
