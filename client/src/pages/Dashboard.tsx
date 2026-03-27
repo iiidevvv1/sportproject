@@ -3,11 +3,13 @@ import { Target, Plus, ChevronRight } from 'lucide-react';
 import Header from '../components/Header';
 import GameCard from '../components/GameCard';
 import { useGames } from '../hooks/useGame';
+import { useVersion } from '../hooks/useVersion';
 import { STONE_COLORS } from '../types';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { data: games = [], isLoading } = useGames();
+  const { version } = useVersion();
 
   const activeGame = games.find((g) => g.status === 'active');
   const completedGames = games.filter((g) => g.status === 'finished');
@@ -133,7 +135,7 @@ export default function Dashboard() {
 
       {/* Version footer */}
       <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 py-3 px-6 text-center">
-        <p className="text-xs text-slate-400">Керлинг Стат • v1.3.0</p>
+        <p className="text-xs text-slate-400">Керлинг Стат • v{version?.version || '?.?.?'}</p>
       </footer>
     </div>
   );

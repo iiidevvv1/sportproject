@@ -6,6 +6,7 @@ COPY client/package.json ./client/
 COPY server/package.json ./server/
 RUN npm ci
 COPY tsconfig.base.json ./
+COPY version.json ./
 COPY client/ ./client/
 RUN npm run build -w client
 
@@ -29,6 +30,7 @@ COPY server/package.json ./server/
 RUN npm ci --omit=dev
 COPY --from=client-build /app/client/dist ./client/dist
 COPY --from=server-build /app/server/dist ./server/dist
+COPY version.json ./client/dist/
 
 ENV NODE_ENV=production
 ENV PORT=3001
