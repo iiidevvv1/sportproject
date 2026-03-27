@@ -82,7 +82,7 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
           
-          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST 2>&1 | tee /tmp/deploy.log << 'EOF'
+          cat > /tmp/deploy_script.sh << 'DEPLOY_SCRIPT'
           set -ex
           echo "=== Starting deploy ==="
           cd /app
@@ -97,23 +97,12 @@ jobs:
           echo "=== Starting containers ==="
           docker-compose -f docker-compose.prod.yml up -d
           echo "✅ Deploy complete"
-          EOF
-        continue-on-error: true
-
-      - name: Extract error message
-        id: error_logs
-        run: |
-          if [ -f /tmp/deploy.log ]; then
-            ERROR_MSG=$(tail -15 /tmp/deploy.log | sed 's/"/\\"/g' | sed "s/'/\\\\'/g")
-            ERROR_MSG=$(echo "$ERROR_MSG" | sed ':a;N;$!ba;s/\n/\\n/g')
-            echo "error_msg=$ERROR_MSG" >> $GITHUB_OUTPUT
-          else
-            echo "error_msg=Deployment log not found" >> $GITHUB_OUTPUT
-          fi
-        continue-on-error: true
+          DEPLOY_SCRIPT
+          
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST 'bash -s' < /tmp/deploy_script.sh 2>&1 | tee /tmp/deploy.log
 
       - name: Notify Telegram - Deploy Success
-        if: steps.deploy.outcome == 'success'
+        if: success()
         run: |
           curl -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
             -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
@@ -125,17 +114,13 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: Notify Telegram - Deploy Failed
-        if: steps.deploy.outcome == 'failure'
+        if: failure()
         run: |
-          ERROR_MSG="${{ steps.error_logs.outputs.error_msg }}"
-          if [ -z "$ERROR_MSG" ]; then
-            ERROR_MSG="Deployment failed - check logs"
-          fi
           curl -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
             -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
             -d "parse_mode=HTML" \
             -d "disable_web_page_preview=true" \
-            -d "text=❌ <b>Curling deploy FAILED!</b>%0ACommit: <code>${{ github.sha }}</code>%0A%0A<pre>$ERROR_MSG</pre>"
+            -d "text=❌ <b>Curling deploy FAILED!</b>%0ACommit: <code>${{ github.sha }}</code>%0ACheck GitHub Actions logs."
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
