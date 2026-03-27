@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react';
 
 interface VersionInfo {
   version: string;
-  buildDate: string;
-  commit?: string;
 }
 
 export function useVersion() {
@@ -14,7 +12,7 @@ export function useVersion() {
     fetch('/version.json')
       .then((res) => res.json())
       .then((data: VersionInfo) => setVersion(data))
-      .catch(() => setVersion({ version: '?.?.?', buildDate: '', commit: '' }))
+      .catch(() => setVersion({ version: '?.?.?' }))
       .finally(() => setIsLoading(false));
   }, []);
 
