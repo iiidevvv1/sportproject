@@ -21,7 +21,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen pb-32">
       <Header
         leftIcon={<Target className="text-primary" size={24} />}
         centerContent={
@@ -131,17 +131,10 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* FAB for new game when there's an active game */}
-      {activeGame && (
-        <div className="fixed bottom-6 right-6">
-          <button
-            onClick={() => void navigate('/games/new')}
-            className="w-14 h-14 rounded-full bg-primary text-white shadow-lg shadow-primary/30 flex items-center justify-center hover:scale-110 transition-transform"
-          >
-            <Plus size={24} />
-          </button>
-        </div>
-      )}
+      {/* Version footer */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 py-3 px-6 text-center">
+        <p className="text-xs text-slate-400">Керлинг Стат • v1.2.0 • CI/CD Ready 🚀</p>
+      </footer>
     </div>
   );
 }
