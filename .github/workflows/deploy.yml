@@ -85,23 +85,29 @@ jobs:
           cat > /tmp/deploy_script.sh << 'DEPLOY_SCRIPT'
           set -ex
           
-          # Use docker compose v2 plugin, fall back to docker-compose v1
-          if docker compose version >/dev/null 2>&1; then
-            DC="docker compose"
-          else
-            DC="docker-compose"
+          # Ensure docker compose v2 is available (v1.29.x causes KeyError 'ContainerConfig')
+          if ! docker compose version &>/dev/null; then
+            echo "=== Installing docker compose v2 plugin ==="
+            apt-get update -qq && apt-get install -y -qq docker-compose-plugin 2>/dev/null || {
+              mkdir -p /usr/local/lib/docker/cli-plugins
+              ARCH=$(uname -m)
+              curl -fsSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${ARCH}" \
+                -o /usr/local/lib/docker/cli-plugins/docker-compose
+              chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+            }
           fi
+          echo "=== docker compose version: $(docker compose version) ==="
           
           echo "=== Starting deploy ==="
           cd /app
           echo "=== Pulling latest code ==="
           git pull origin main
           echo "=== Stopping old containers ==="
-          $DC -f docker-compose.prod.yml down --remove-orphans
+          docker compose -f docker-compose.prod.yml down --remove-orphans
           echo "=== Building Docker image ==="
-          $DC -f docker-compose.prod.yml build --no-cache
+          docker compose -f docker-compose.prod.yml build --no-cache
           echo "=== Starting containers ==="
-          $DC -f docker-compose.prod.yml up -d
+          docker compose -f docker-compose.prod.yml up -d
           echo "✅ Deploy complete"
           DEPLOY_SCRIPT
           
