@@ -27,14 +27,21 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Build Docker image
-        run: docker build -t curling:latest .
+  deploy:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Notify Telegram - Build Started
+      - name: Notify Telegram - Deploy Starting
         run: |
           curl -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
             -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d "text=🔄 Curling app: build started (commit ${{ github.sha }})"
+            -d "text=🚀 Deploy starting... (commit ${{ github.sha }})"
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: Deploy to VM
         id: deploy
@@ -59,14 +66,12 @@ jobs:
           echo "✅ Deploy complete"
           EOF
         continue-on-error: true
-      
+
       - name: Extract error message
         id: error_logs
         run: |
           if [ -f /tmp/deploy.log ]; then
-            # Берём последние 15 строк логов
             ERROR_MSG=$(tail -15 /tmp/deploy.log | sed 's/"/\\"/g' | sed "s/'/\\\\'/g")
-            # Заменяем переносы на \n для читаемости
             ERROR_MSG=$(echo "$ERROR_MSG" | sed ':a;N;$!ba;s/\n/\\n/g')
             echo "error_msg=$ERROR_MSG" >> $GITHUB_OUTPUT
           else
@@ -82,16 +87,22 @@ jobs:
             -d "parse_mode=HTML" \
             -d "disable_web_page_preview=true" \
             -d "text=✅ <b>Curling app deployed!</b>%0ACommit: <code>${{ github.sha }}</code>%0AURL: kurling.inkpie.ru"
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: Notify Telegram - Deploy Failed
         if: steps.deploy.outcome == 'failure'
         run: |
           ERROR_MSG="${{ steps.error_logs.outputs.error_msg }}"
           if [ -z "$ERROR_MSG" ]; then
-            ERROR_MSG="Deployment failed - check logs at%0Agithub.com/iiidevvv1/sportproject/actions/runs/${{ github.run_id }}"
+            ERROR_MSG="Deployment failed - check logs"
           fi
           curl -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
             -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
             -d "parse_mode=HTML" \
             -d "disable_web_page_preview=true" \
             -d "text=❌ <b>Curling deploy FAILED!</b>%0ACommit: <code>${{ github.sha }}</code>%0A%0A<pre>$ERROR_MSG</pre>"
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
