@@ -37,6 +37,7 @@ jobs:
             -d "text=🔄 Curling app: build started (commit ${{ github.sha }})"
 
       - name: Deploy to VM
+        id: deploy
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -47,7 +48,7 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
           
-          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+          ssh -i ~/.ssh/deploy_key $DEPLOY_USER@$DEPLOY_HOST << 'EOF' 2>&1 | tee /tmp/deploy.log
           set -e
           cd /app
           git pull origin main
@@ -57,19 +58,35 @@ jobs:
           docker-compose -f docker-compose.prod.yml up -d
           echo "Deploy complete"
           EOF
+        continue-on-error: true
+      
+      - name: Capture error logs
+        if: failure()
+        id: error_logs
+        run: |
+          if [ -f /tmp/deploy.log ]; then
+            ERROR_MSG=$(tail -20 /tmp/deploy.log | sed 's/"/\\"/g' | tr '\n' ' ')
+            echo "error_msg=$ERROR_MSG" >> $GITHUB_OUTPUT
+          else
+            echo "error_msg=Unknown error" >> $GITHUB_OUTPUT
+          fi
 
       - name: Notify Telegram - Deploy Success
-        if: success()
+        if: steps.deploy.outcome == 'success'
         run: |
           curl -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
             -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
             -d "parse_mode=HTML" \
-            -d "text=✅ <b>Curling app deployed successfully!</b>%0ACommit: <code>${{ github.sha }}</code>%0AURL: https://kurling.inkpie.ru"
+            -d "disable_web_page_preview=true" \
+            -d "text=✅ <b>Curling app deployed!</b>%0ACommit: <code>${{ github.sha }}</code>%0AURL: kurling.inkpie.ru"
 
       - name: Notify Telegram - Deploy Failed
-        if: failure()
+        if: steps.deploy.outcome == 'failure'
         run: |
+          ERROR_MSG="${{ steps.error_logs.outputs.error_msg }}"
+          if [ -z "$ERROR_MSG" ]; then ERROR_MSG="Unknown error - check GitHub Actions logs"; fi
           curl -X POST https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage \
             -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
             -d "parse_mode=HTML" \
-            -d "text=❌ <b>Curling app deploy FAILED!</b>%0ACommit: <code>${{ github.sha }}</code>%0ACheck: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            -d "disable_web_page_preview=true" \
+            -d "text=❌ <b>Curling deploy FAILED!</b>%0ACommit: <code>${{ github.sha }}</code>%0A%0A<code>$ERROR_MSG</code>"
