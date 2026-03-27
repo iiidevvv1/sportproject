@@ -133,7 +133,7 @@ export default function Dashboard() {
 
       {/* Version footer */}
       <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 py-3 px-6 text-center">
-        <p className="text-xs text-slate-400">Керлинг Стат • v1.3.0 • Deployed ✅</p>
+        <p className="text-xs text-slate-400">Керлинг Стат • v1.3.0</p>
       </footer>
     </div>
   );
