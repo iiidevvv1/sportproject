@@ -101,8 +101,7 @@ jobs:
           echo "=== Pulling latest code ==="
           git fetch origin main && git reset --hard origin/main
           echo "=== Stopping old containers ==="
-          $COMPOSE -f docker-compose.prod.yml stop || true
-          $COMPOSE -f docker-compose.prod.yml rm -f || true
+          $COMPOSE -f docker-compose.prod.yml ps -q | xargs -r docker rm -f || true
           echo "=== Building Docker image ==="
           $COMPOSE -f docker-compose.prod.yml build --no-cache
           echo "=== Starting containers ==="
