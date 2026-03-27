@@ -99,7 +99,7 @@ jobs:
           echo "=== Starting deploy ==="
           cd /app
           echo "=== Pulling latest code ==="
-          git fetch origin main && git reset --hard origin/main
+          git pull origin main
           echo "=== Stopping old containers ==="
           $COMPOSE -f docker-compose.prod.yml stop || true
           $COMPOSE -f docker-compose.prod.yml rm -f || true
