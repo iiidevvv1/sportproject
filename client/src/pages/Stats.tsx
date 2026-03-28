@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ChevronLeft, BarChart2, Users, Star, Shield, Sigma } from 'lucide-react';
+import { ChevronLeft, BarChart2, Users, Star, Shield, Sigma, Trash2 } from 'lucide-react';
 import Header from '../components/Header';
-import { useGame, useGameStats } from '../hooks/useGame';
+import { useGame, useGameStats, useDeleteGame } from '../hooks/useGame';
 import { toDisplayStats } from '../lib/statsCalc';
 import { STONE_COLORS } from '../types';
 
@@ -17,6 +17,8 @@ export default function Stats() {
 
   const { data: game, isLoading: gameLoading } = useGame(gameId);
   const { data: statsData, isLoading: statsLoading } = useGameStats(gameId);
+  const deleteGame = useDeleteGame();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (gameLoading || statsLoading || !game || !statsData) {
     return (
@@ -337,7 +339,50 @@ export default function Stats() {
             ))}
           </div>
         )}
+
+        {/* Delete game button */}
+        {game.status === 'finished' && (
+          <div className="pt-8 pb-8">
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border border-red-200 text-red-400 hover:bg-red-50 font-headline font-bold text-sm transition-colors"
+            >
+              <Trash2 size={16} />
+              Удалить игру
+            </button>
+          </div>
+        )}
       </main>
+
+      {/* Delete confirmation modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-6">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center space-y-6 shadow-2xl">
+            <h3 className="font-headline font-bold text-xl text-[#0d1c2e]">
+              Вы уверены, что хотите удалить?
+            </h3>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  deleteGame.mutate(gameId, {
+                    onSuccess: () => void navigate('/'),
+                  });
+                }}
+                disabled={deleteGame.isPending}
+                className="w-full py-4 rounded-xl bg-red-500 text-white font-headline font-bold tracking-wide shadow-md disabled:opacity-60"
+              >
+                Да, удалить
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="w-full py-4 rounded-xl border border-slate-200 text-slate-500 font-headline font-bold tracking-wide hover:bg-slate-50"
+              >
+                Нет, оставить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

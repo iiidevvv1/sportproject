@@ -22,8 +22,28 @@ export default function NewGame() {
   const [ourColor, setOurColor] = useState<StoneColor>('red');
   const [oppName, setOppName] = useState('');
   const [oppColor, setOppColor] = useState<StoneColor>('yellow');
+
+  const ALL_COLORS: StoneColor[] = ['red', 'yellow', 'blue', 'green'];
+  const nextColor = (current: StoneColor, avoid: StoneColor): StoneColor => {
+    const idx = ALL_COLORS.indexOf(current);
+    for (let i = 1; i < ALL_COLORS.length; i++) {
+      const candidate = ALL_COLORS[(idx + i) % ALL_COLORS.length] as StoneColor;
+      if (candidate !== avoid) return candidate;
+    }
+    return current;
+  };
+
+  const handleOurColorChange = (color: StoneColor) => {
+    setOurColor(color);
+    if (color === oppColor) setOppColor(nextColor(oppColor, color));
+  };
+
+  const handleOppColorChange = (color: StoneColor) => {
+    setOppColor(color);
+    if (color === ourColor) setOurColor(nextColor(ourColor, color));
+  };
   const [hammer, setHammer] = useState<TeamSide>('home');
-  const [ends, setEnds] = useState(10);
+  const [ends, setEnds] = useState(8);
 
   const handleCreate = () => {
     createGame.mutate(
@@ -85,7 +105,7 @@ export default function NewGame() {
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">
                 Цвет камней
               </label>
-              <ColorPicker value={ourColor} onChange={setOurColor} disabledColor={oppColor} />
+              <ColorPicker value={ourColor} onChange={handleOurColorChange} />
             </div>
           </div>
         </section>
@@ -113,7 +133,7 @@ export default function NewGame() {
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">
                 Цвет камней
               </label>
-              <ColorPicker value={oppColor} onChange={setOppColor} disabledColor={ourColor} />
+              <ColorPicker value={oppColor} onChange={handleOppColorChange} />
             </div>
           </div>
         </section>

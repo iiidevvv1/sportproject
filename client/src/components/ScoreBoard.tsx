@@ -1,3 +1,4 @@
+import { Hammer } from 'lucide-react';
 import { STONE_COLORS, type GameWithDetails } from '../types';
 import { getHammerForEnd } from '../lib/shotOrder';
 
@@ -13,28 +14,28 @@ export default function ScoreBoard({ game, currentEnd }: ScoreBoardProps) {
 
   return (
     <div className="flex items-center gap-3">
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
+        {hammerThisEnd === 'home' && (
+          <Hammer size={18} style={{ color: STONE_COLORS[game.color_home] }} />
+        )}
         <span
           className="font-headline font-extrabold text-xl"
           style={{ color: STONE_COLORS[game.color_home] }}
         >
           {totalHome}
         </span>
-        {hammerThisEnd === 'home' && (
-          <span className="text-[10px] font-bold" style={{ color: STONE_COLORS[game.color_home] }}>Х</span>
-        )}
       </div>
       <span className="font-headline font-extrabold text-xl text-slate-300">:</span>
-      <div className="flex items-center gap-1">
-        {hammerThisEnd === 'away' && (
-          <span className="text-[10px] font-bold" style={{ color: STONE_COLORS[game.color_away] }}>Х</span>
-        )}
+      <div className="flex items-center gap-2">
         <span
           className="font-headline font-extrabold text-xl"
           style={{ color: STONE_COLORS[game.color_away] }}
         >
           {totalAway}
         </span>
+        {hammerThisEnd === 'away' && (
+          <Hammer size={18} style={{ color: STONE_COLORS[game.color_away] }} />
+        )}
       </div>
     </div>
   );

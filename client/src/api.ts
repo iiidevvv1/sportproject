@@ -57,6 +57,12 @@ export function finishGame(id: number): Promise<Game> {
   });
 }
 
+export function deleteGame(id: number): Promise<{ ok: boolean }> {
+  return fetchJson<{ ok: boolean }>(`/games/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 // Shots
 export function createShot(
   gameId: number,

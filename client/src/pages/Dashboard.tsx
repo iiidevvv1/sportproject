@@ -32,10 +32,6 @@ export default function Dashboard() {
       />
 
       <main className="pt-20 px-6 py-8 space-y-8">
-        <header className="space-y-1">
-          <h2 className="font-headline text-3xl font-extrabold tracking-tight text-[#0d1c2e]">Центр игры</h2>
-          <p className="text-slate-500 text-sm">Точность на льду под контролем</p>
-        </header>
 
         {/* Active game section */}
         <section className="space-y-4">

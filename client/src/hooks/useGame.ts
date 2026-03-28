@@ -52,3 +52,14 @@ export function useFinishGame() {
     },
   });
 }
+
+export function useDeleteGame() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => api.deleteGame(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['games'] });
+    },
+  });
+}

@@ -92,5 +92,26 @@ export function gamesRouter(ctx: AppContext): Router {
     res.json(game);
   });
 
+  // DELETE /api/games/:id
+  router.delete('/:id', (req: Request, res: Response) => {
+    const gameId = req.params['id'];
+
+    const game = ctx.db
+      .prepare('SELECT * FROM games WHERE id = ?')
+      .get(gameId) as GameRow | undefined;
+
+    if (!game) {
+      res.status(404).json({ error: 'Game not found' });
+      return;
+    }
+
+    // Delete shots, ends, then game (cascade manually)
+    ctx.db.prepare('DELETE FROM shots WHERE game_id = ?').run(gameId);
+    ctx.db.prepare('DELETE FROM ends WHERE game_id = ?').run(gameId);
+    ctx.db.prepare('DELETE FROM games WHERE id = ?').run(gameId);
+
+    res.json({ ok: true });
+  });
+
   return router;
 }
