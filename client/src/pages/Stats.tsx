@@ -304,7 +304,7 @@ export default function Stats() {
                 {/* Table with Draw/Take, In, Out */}
                 <div className="divide-y divide-slate-100">
                   {/* Row 1: Draw/Take headers with counts and percentages */}
-                  <div className="grid grid-cols-2 divide-x divide-slate-100">
+                  <div className="grid grid-cols-2 divide-x-2 divide-slate-200">
                     <div className="px-6 py-4 text-base font-bold text-slate-600">
                       Draw {player.drawCount} / {player.drawAvg}%
                     </div>
@@ -314,7 +314,7 @@ export default function Stats() {
                   </div>
 
                   {/* Row 2: In */}
-                  <div className="grid grid-cols-2 divide-x divide-slate-100">
+                  <div className="grid grid-cols-2 divide-x-2 divide-slate-200">
                     <div className="px-6 py-4 text-base text-slate-600">
                       In {player.drawInCount} / {player.inturnDrawAvg}%
                     </div>
@@ -324,7 +324,7 @@ export default function Stats() {
                   </div>
 
                   {/* Row 3: Out */}
-                  <div className="grid grid-cols-2 divide-x divide-slate-100">
+                  <div className="grid grid-cols-2 divide-x-2 divide-slate-200">
                     <div className="px-6 py-4 text-base text-slate-600">
                       Out {player.drawOutCount} / {player.outturnDrawAvg}%
                     </div>
