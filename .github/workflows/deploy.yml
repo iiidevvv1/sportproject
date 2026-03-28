@@ -85,27 +85,29 @@ jobs:
           cat > /tmp/deploy_script.sh << 'DEPLOY_SCRIPT'
           set -ex
           
-          # Use docker compose v2 (built into modern Docker) or fallback to docker-compose v1
-          if docker compose version &>/dev/null; then
-            COMPOSE="docker compose"
-          elif docker-compose version &>/dev/null; then
-            COMPOSE="docker-compose"
-          else
-            echo "ERROR: neither 'docker compose' nor 'docker-compose' found"
-            exit 1
+          # Ensure docker compose v2 plugin is installed (v1 has ContainerConfig bug)
+          if ! docker compose version &>/dev/null; then
+            echo "=== Installing docker compose v2 plugin ==="
+            DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+            mkdir -p $DOCKER_CONFIG/cli-plugins
+            ARCH=$(uname -m)
+            if [ "$ARCH" = "x86_64" ]; then ARCH="x86_64"; elif [ "$ARCH" = "aarch64" ]; then ARCH="aarch64"; fi
+            curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${ARCH}" -o $DOCKER_CONFIG/cli-plugins/docker-compose
+            chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
           fi
-          echo "=== Using: $COMPOSE ($($COMPOSE version)) ==="
+          
+          echo "=== Using: docker compose $(docker compose version) ==="
           
           echo "=== Starting deploy ==="
           cd /app
           echo "=== Pulling latest code ==="
           git fetch origin main && git reset --hard origin/main
-          echo "=== Stopping and removing old containers (full down) ==="
-          $COMPOSE -f docker-compose.prod.yml down || true
+          echo "=== Stopping old containers ==="
+          docker compose -f docker-compose.prod.yml down || true
           echo "=== Building Docker image ==="
-          $COMPOSE -f docker-compose.prod.yml build --no-cache
+          docker compose -f docker-compose.prod.yml build --no-cache
           echo "=== Starting containers ==="
-          $COMPOSE -f docker-compose.prod.yml up -d
+          docker compose -f docker-compose.prod.yml up -d
           echo "✅ Deploy complete"
           DEPLOY_SCRIPT
           
