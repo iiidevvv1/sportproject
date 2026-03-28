@@ -316,20 +316,20 @@ export default function Stats() {
                   {/* Row 2: In */}
                   <div className="grid grid-cols-2 divide-x divide-slate-100">
                     <div className="px-6 py-4 text-sm text-slate-600">
-                      In {player.drawInturnCount} / {player.inturnDrawAvg}%
+                      In {player.drawInCount} / {player.inturnDrawAvg}%
                     </div>
                     <div className="px-6 py-4 text-sm text-slate-600">
-                      In {player.takeoutInturnCount} / {player.inturnTakeoutAvg}%
+                      In {player.takeoutInCount} / {player.inturnTakeoutAvg}%
                     </div>
                   </div>
 
                   {/* Row 3: Out */}
                   <div className="grid grid-cols-2 divide-x divide-slate-100">
                     <div className="px-6 py-4 text-sm text-slate-600">
-                      Out {player.drawOutturnCount} / {player.outturnDrawAvg}%
+                      Out {player.drawOutCount} / {player.outturnDrawAvg}%
                     </div>
                     <div className="px-6 py-4 text-sm text-slate-600">
-                      Out {player.takeoutOutturnCount} / {player.outturnTakeoutAvg}%
+                      Out {player.takeoutOutCount} / {player.outturnTakeoutAvg}%
                     </div>
                   </div>
                 </div>

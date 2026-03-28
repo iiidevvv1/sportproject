@@ -88,6 +88,13 @@ export interface PlayerStats {
   inturn_takeout_avg: number;
   outturn_draw_avg: number;
   outturn_takeout_avg: number;
+  // Shot counts by type
+  draw_count: number;
+  takeout_count: number;
+  draw_in_count: number;
+  draw_out_count: number;
+  takeout_in_count: number;
+  takeout_out_count: number;
 }
 
 export interface TeamStats {

@@ -16,6 +16,11 @@ function calcPlayerStats(shots: ShotRow[]): PlayerStats[] {
     const inturnShots = playerShots.filter((s) => s.turn === 'inturn' && s.score != null);
     const outturnShots = playerShots.filter((s) => s.turn === 'outturn' && s.score != null);
 
+    const drawInShots = playerShots.filter((s) => s.type === 'draw' && s.turn === 'inturn' && s.score != null);
+    const drawOutShots = playerShots.filter((s) => s.type === 'draw' && s.turn === 'outturn' && s.score != null);
+    const takeoutInShots = playerShots.filter((s) => s.type === 'takeout' && s.turn === 'inturn' && s.score != null);
+    const takeoutOutShots = playerShots.filter((s) => s.type === 'takeout' && s.turn === 'outturn' && s.score != null);
+
     players.push({
       position: pos,
       avg: avg(scores),
@@ -24,18 +29,16 @@ function calcPlayerStats(shots: ShotRow[]): PlayerStats[] {
       takeout_avg: avg(takeoutShots.map((s) => s.score!)),
       inturn_avg: avg(inturnShots.map((s) => s.score!)),
       outturn_avg: avg(outturnShots.map((s) => s.score!)),
-      inturn_draw_avg: avg(
-        playerShots.filter((s) => s.turn === 'inturn' && s.type === 'draw' && s.score != null).map((s) => s.score!)
-      ),
-      inturn_takeout_avg: avg(
-        playerShots.filter((s) => s.turn === 'inturn' && s.type === 'takeout' && s.score != null).map((s) => s.score!)
-      ),
-      outturn_draw_avg: avg(
-        playerShots.filter((s) => s.turn === 'outturn' && s.type === 'draw' && s.score != null).map((s) => s.score!)
-      ),
-      outturn_takeout_avg: avg(
-        playerShots.filter((s) => s.turn === 'outturn' && s.type === 'takeout' && s.score != null).map((s) => s.score!)
-      ),
+      inturn_draw_avg: avg(drawInShots.map((s) => s.score!)),
+      inturn_takeout_avg: avg(takeoutInShots.map((s) => s.score!)),
+      outturn_draw_avg: avg(drawOutShots.map((s) => s.score!)),
+      outturn_takeout_avg: avg(takeoutOutShots.map((s) => s.score!)),
+      draw_count: drawShots.length,
+      takeout_count: takeoutShots.length,
+      draw_in_count: drawInShots.length,
+      draw_out_count: drawOutShots.length,
+      takeout_in_count: takeoutInShots.length,
+      takeout_out_count: takeoutOutShots.length,
     });
   }
 
