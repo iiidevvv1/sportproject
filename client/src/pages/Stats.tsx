@@ -293,10 +293,10 @@ export default function Stats() {
               >
                 {/* Header row */}
                 <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-                  <h3 className="font-headline text-lg font-bold text-[#0d1c2e]">
+                  <h3 className="font-headline text-xl font-bold text-[#0d1c2e]">
                     {POSITION_LABELS_FULL[idx]}
                   </h3>
-                  <div className="text-right text-sm font-bold text-slate-600">
+                  <div className="text-right text-lg font-bold text-slate-600">
                     {player.shotCount} / <span className="text-primary font-black">{player.avg}%</span>
                   </div>
                 </div>
@@ -305,30 +305,30 @@ export default function Stats() {
                 <div className="divide-y divide-slate-100">
                   {/* Row 1: Draw/Take headers with counts and percentages */}
                   <div className="grid grid-cols-2 divide-x divide-slate-100">
-                    <div className="px-6 py-4 text-sm font-bold text-slate-600">
+                    <div className="px-6 py-4 text-base font-bold text-slate-600">
                       Draw {player.drawCount} / {player.drawAvg}%
                     </div>
-                    <div className="px-6 py-4 text-sm font-bold text-slate-600">
+                    <div className="px-6 py-4 text-base font-bold text-slate-600">
                       Take {player.takeoutCount} / {player.takeoutAvg}%
                     </div>
                   </div>
 
                   {/* Row 2: In */}
                   <div className="grid grid-cols-2 divide-x divide-slate-100">
-                    <div className="px-6 py-4 text-sm text-slate-600">
+                    <div className="px-6 py-4 text-base text-slate-600">
                       In {player.drawInCount} / {player.inturnDrawAvg}%
                     </div>
-                    <div className="px-6 py-4 text-sm text-slate-600">
+                    <div className="px-6 py-4 text-base text-slate-600">
                       In {player.takeoutInCount} / {player.inturnTakeoutAvg}%
                     </div>
                   </div>
 
                   {/* Row 3: Out */}
                   <div className="grid grid-cols-2 divide-x divide-slate-100">
-                    <div className="px-6 py-4 text-sm text-slate-600">
+                    <div className="px-6 py-4 text-base text-slate-600">
                       Out {player.drawOutCount} / {player.outturnDrawAvg}%
                     </div>
-                    <div className="px-6 py-4 text-sm text-slate-600">
+                    <div className="px-6 py-4 text-base text-slate-600">
                       Out {player.takeoutOutCount} / {player.outturnTakeoutAvg}%
                     </div>
                   </div>
