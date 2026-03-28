@@ -83,5 +83,22 @@ export function shotsRouter(ctx: AppContext): Router {
     res.json(shot);
   });
 
+  // DELETE /api/games/:id/shots/last
+  router.delete('/last', (req: Request, res: Response) => {
+    const gameId = Number(req.params['id']);
+
+    const lastShot = ctx.db.prepare(
+      'SELECT * FROM shots WHERE game_id = ? ORDER BY end_number DESC, shot_number DESC LIMIT 1'
+    ).get(gameId) as ShotRow | undefined;
+
+    if (!lastShot) {
+      res.status(404).json({ error: 'No shots to delete' });
+      return;
+    }
+
+    ctx.db.prepare('DELETE FROM shots WHERE id = ?').run(lastShot.id);
+    res.json({ ok: true, deleted: lastShot });
+  });
+
   return router;
 }

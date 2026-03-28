@@ -43,6 +43,17 @@ export function useUpdateShot(gameId: number) {
   });
 }
 
+export function useDeleteLastShot(gameId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => api.deleteLastShot(gameId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['game', gameId] });
+    },
+  });
+}
+
 export function useCreateEnd(gameId: number) {
   const queryClient = useQueryClient();
 

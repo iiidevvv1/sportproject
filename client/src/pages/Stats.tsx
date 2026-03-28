@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ChevronLeft, BarChart2, Users, Star, Shield, Sigma, Trash2 } from 'lucide-react';
+import { ChevronLeft, BarChart2, Users, Star, Shield, Sigma, Trash2, RotateCcw } from 'lucide-react';
 import Header from '../components/Header';
-import { useGame, useGameStats, useDeleteGame } from '../hooks/useGame';
+import { useGame, useGameStats, useDeleteGame, useResumeGame } from '../hooks/useGame';
 import { toDisplayStats } from '../lib/statsCalc';
 import { STONE_COLORS } from '../types';
 
@@ -18,6 +18,7 @@ export default function Stats() {
   const { data: game, isLoading: gameLoading } = useGame(gameId);
   const { data: statsData, isLoading: statsLoading } = useGameStats(gameId);
   const deleteGame = useDeleteGame();
+  const resumeGame = useResumeGame();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (gameLoading || statsLoading || !game || !statsData) {
@@ -35,6 +36,7 @@ export default function Stats() {
 
   const homeColor = STONE_COLORS[game.color_home];
   const awayColor = STONE_COLORS[game.color_away];
+  const totalEnds = Math.max(game.max_ends, game.ends.length);
 
   const POSITION_LABELS = ['ЛИД', '2-Й', '3-Й', 'СКИП'];
   const POSITION_LABELS_FULL = ['Лид', 'Второй', 'Третий', 'Скип'];
@@ -124,7 +126,7 @@ export default function Stats() {
                       <th className="px-3 py-3 text-center">
                         <Users size={16} className="text-primary mx-auto" />
                       </th>
-                      {Array.from({ length: game.max_ends }).map((_, i) => (
+                      {Array.from({ length: totalEnds }).map((_, i) => (
                         <th key={i} className="px-1 py-3 text-center font-headline text-xs font-bold text-slate-400">
                           {i + 1}
                         </th>
@@ -143,7 +145,7 @@ export default function Stats() {
                           className="mx-auto"
                         />
                       </td>
-                      {Array.from({ length: game.max_ends }).map((_, i) => {
+                      {Array.from({ length: totalEnds }).map((_, i) => {
                         const end = game.ends.find((e) => e.number === i + 1);
                         const s = end ? end.score_home : 0;
                         return (
@@ -170,7 +172,7 @@ export default function Stats() {
                           className="mx-auto"
                         />
                       </td>
-                      {Array.from({ length: game.max_ends }).map((_, i) => {
+                      {Array.from({ length: totalEnds }).map((_, i) => {
                         const end = game.ends.find((e) => e.number === i + 1);
                         const s = end ? end.score_away : 0;
                         return (
@@ -340,9 +342,21 @@ export default function Stats() {
           </div>
         )}
 
-        {/* Delete game button */}
+        {/* Game actions */}
         {game.status === 'finished' && (
-          <div className="pt-8 pb-8">
+          <div className="pt-8 pb-8 space-y-3">
+            <button
+              onClick={() => {
+                resumeGame.mutate(gameId, {
+                  onSuccess: () => void navigate(`/games/${gameId}/play`),
+                });
+              }}
+              disabled={resumeGame.isPending}
+              className="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-primary text-white font-headline font-bold text-sm transition-colors shadow-md disabled:opacity-60"
+            >
+              <RotateCcw size={16} />
+              Вернуться в игру
+            </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
               className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border border-red-200 text-red-400 hover:bg-red-50 font-headline font-bold text-sm transition-colors"

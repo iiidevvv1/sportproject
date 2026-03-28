@@ -53,6 +53,18 @@ export function useFinishGame() {
   });
 }
 
+export function useResumeGame() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => api.resumeGame(id),
+    onSuccess: (_data, id) => {
+      void queryClient.invalidateQueries({ queryKey: ['games'] });
+      void queryClient.invalidateQueries({ queryKey: ['game', id] });
+    },
+  });
+}
+
 export function useDeleteGame() {
   const queryClient = useQueryClient();
 

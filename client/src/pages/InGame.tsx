@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Header from '../components/Header';
@@ -6,9 +6,9 @@ import ScoreBoard from '../components/ScoreBoard';
 import ShotInput from '../components/ShotInput';
 import EndResult from '../components/EndResult';
 import { useGame, useFinishGame } from '../hooks/useGame';
-import { useCreateShot, useCreateEnd } from '../hooks/useShots';
+import { useCreateShot, useUpdateShot, useCreateEnd } from '../hooks/useShots';
 import { getShotInfo, getHammerForEnd } from '../lib/shotOrder';
-import { STONE_COLORS, type ShotType, type TurnType, type ScoreValue, type TeamSide } from '../types';
+import { STONE_COLORS, type ShotType, type TurnType, type ScoreValue, type TeamSide, type Shot } from '../types';
 
 const SHOTS_PER_END = 16;
 
@@ -19,8 +19,13 @@ export default function InGame() {
 
   const { data: game, isLoading } = useGame(gameId);
   const createShot = useCreateShot(gameId);
+  const updateShot = useUpdateShot(gameId);
   const createEnd = useCreateEnd(gameId);
   const finishGame = useFinishGame();
+
+  // viewIndex: which shot position we're viewing (0-based index into all shots)
+  // null = "new shot" position (past the last recorded shot)
+  const [viewIndex, setViewIndex] = useState<number | null>(null);
 
   const [shotType, setShotType] = useState<ShotType>('draw');
   const [shotTurn, setShotTurn] = useState<TurnType>('inturn');
@@ -28,6 +33,8 @@ export default function InGame() {
   const [isThrowaway, setIsThrowaway] = useState(false);
   const [showEndResult, setShowEndResult] = useState(false);
   const [showTieDialog, setShowTieDialog] = useState(false);
+  // Track if current viewed shot was edited
+  const [isDirty, setIsDirty] = useState(false);
 
   if (isLoading || !game) {
     return (
@@ -37,46 +44,123 @@ export default function InGame() {
     );
   }
 
-  // Determine current end and shot number from existing shots
-  const shotsInGame = game.shots;
+  // All shots sorted by end then shot number
+  const allShots = [...game.shots].sort(
+    (a, b) => a.end_number - b.end_number || a.shot_number - b.shot_number,
+  );
 
-  // Group shots by end to find the current end
   const completedEnds = game.ends.length;
-  const currentEnd = completedEnds + 1;
+  const isViewingExisting = viewIndex !== null && viewIndex < allShots.length;
+  const viewedShot: Shot | undefined = isViewingExisting ? allShots[viewIndex] : undefined;
 
-  // Shots in current end (not yet saved to an end)
-  const shotsInCurrentEnd = shotsInGame.filter((s) => s.end_number === currentEnd);
+  // Current end/shot for the "new shot" position
+  const currentEnd = completedEnds + 1;
+  const shotsInCurrentEnd = allShots.filter((s) => s.end_number === currentEnd);
   const currentShotNumber = shotsInCurrentEnd.length + 1;
 
-  // Clamp shot number to valid range
-  const effectiveShotNumber = Math.min(currentShotNumber, SHOTS_PER_END);
-  const hammerThisEnd = getHammerForEnd(currentEnd, game.hammer_first_end, game.ends);
-  const shotInfo = getShotInfo(effectiveShotNumber, hammerThisEnd);
+  // The end/shot we're displaying
+  const displayEnd = viewedShot ? viewedShot.end_number : currentEnd;
+  const displayShotNumber = viewedShot ? viewedShot.shot_number : Math.min(currentShotNumber, SHOTS_PER_END);
 
-  const isEndComplete = shotsInCurrentEnd.length >= SHOTS_PER_END;
+  const hammerThisEnd = getHammerForEnd(displayEnd, game.hammer_first_end, game.ends);
+  const shotInfo = getShotInfo(displayShotNumber, hammerThisEnd);
 
-  const handleNextShot = () => {
-    if (isEndComplete) {
-      setShowEndResult(true);
-      return;
+  const isEndComplete = !isViewingExisting && shotsInCurrentEnd.length >= SHOTS_PER_END;
+
+  // Load viewed shot data into form
+  const loadShotIntoForm = useCallback((shot: Shot) => {
+    if (shot.is_throwaway) {
+      setIsThrowaway(true);
+      setShotType('draw');
+      setShotTurn('inturn');
+      setShotScore(100);
+    } else {
+      setIsThrowaway(false);
+      setShotType((shot.type as ShotType) ?? 'draw');
+      setShotTurn((shot.turn as TurnType) ?? 'inturn');
+      setShotScore((shot.score as ScoreValue) ?? 100);
     }
+    setIsDirty(false);
+  }, []);
 
-    createShot.mutate({
-      end_number: currentEnd,
-      shot_number: currentShotNumber,
-      team: shotInfo.team,
-      player_number: shotInfo.playerNumber,
-      type: isThrowaway ? null : shotType,
-      turn: isThrowaway ? null : shotTurn,
-      score: isThrowaway ? null : shotScore,
-      is_throwaway: isThrowaway,
-    });
-
-    // Reset for next shot
+  // Reset form to defaults for new shot
+  const resetForm = useCallback(() => {
     setShotType('draw');
     setShotTurn('inturn');
     setShotScore(100);
     setIsThrowaway(false);
+    setIsDirty(false);
+  }, []);
+
+  // Mark dirty on any change
+  const handleTypeChange = (v: ShotType) => { setShotType(v); setIsDirty(true); };
+  const handleTurnChange = (v: TurnType) => { setShotTurn(v); setIsDirty(true); };
+  const handleScoreChange = (v: ScoreValue) => { setShotScore(v); setIsDirty(true); };
+  const handleThrowaway = () => { setIsThrowaway(!isThrowaway); setIsDirty(true); };
+
+  // Navigate to previous shot
+  const handlePrev = () => {
+    if (isViewingExisting && viewIndex > 0) {
+      // Go to previous existing shot
+      const prevShot = allShots[viewIndex - 1]!;
+      setViewIndex(viewIndex - 1);
+      loadShotIntoForm(prevShot);
+    } else if (!isViewingExisting && allShots.length > 0) {
+      // From "new" position, go to last existing shot
+      const lastIdx = allShots.length - 1;
+      setViewIndex(lastIdx);
+      loadShotIntoForm(allShots[lastIdx]!);
+    } else {
+      // First shot, first end — go home
+      void navigate('/');
+    }
+  };
+
+  // Navigate to next shot / save
+  const handleNext = () => {
+    if (isViewingExisting) {
+      // If dirty, save changes first
+      if (isDirty && viewedShot) {
+        updateShot.mutate({
+          shotNumber: viewedShot.shot_number,
+          end_number: viewedShot.end_number,
+          type: isThrowaway ? null : shotType,
+          turn: isThrowaway ? null : shotTurn,
+          score: isThrowaway ? null : shotScore,
+          is_throwaway: isThrowaway,
+        });
+      }
+
+      // Move to next
+      if (viewIndex < allShots.length - 1) {
+        const nextShot = allShots[viewIndex + 1]!;
+        setViewIndex(viewIndex + 1);
+        loadShotIntoForm(nextShot);
+      } else {
+        // Past last existing shot — go to "new" position
+        setViewIndex(null);
+        resetForm();
+      }
+    } else {
+      // New shot mode
+      if (isEndComplete) {
+        setShowEndResult(true);
+        return;
+      }
+
+      createShot.mutate({
+        end_number: currentEnd,
+        shot_number: currentShotNumber,
+        team: shotInfo.team,
+        player_number: shotInfo.playerNumber,
+        type: isThrowaway ? null : shotType,
+        turn: isThrowaway ? null : shotTurn,
+        score: isThrowaway ? null : shotScore,
+        is_throwaway: isThrowaway,
+      });
+
+      resetForm();
+    }
   };
 
   const handleEndResult = (result: { scorer: TeamSide | null; stones: number }) => {
@@ -95,15 +179,12 @@ export default function InGame() {
           setShowEndResult(false);
 
           if (currentEnd >= game.max_ends) {
-            // Calculate total scores including this end
             const totalHome = game.ends.reduce((acc, e) => acc + e.score_home, 0) + scoreHome;
             const totalAway = game.ends.reduce((acc, e) => acc + e.score_away, 0) + scoreAway;
 
             if (totalHome === totalAway) {
-              // Tie — ask about extra end
               setShowTieDialog(true);
             } else {
-              // Not a tie — auto-finish game
               finishGame.mutate(gameId, {
                 onSuccess: () => void navigate(`/games/${gameId}/stats`),
               });
@@ -116,7 +197,6 @@ export default function InGame() {
 
   const handleExtraEnd = () => {
     setShowTieDialog(false);
-    // Game continues — max_ends is just the default, we keep playing
   };
 
   const handleFinishTie = () => {
@@ -144,7 +224,7 @@ export default function InGame() {
             <ChevronLeft size={28} />
           </button>
         }
-        centerContent={<ScoreBoard game={game} currentEnd={currentEnd} />}
+        centerContent={<ScoreBoard game={game} currentEnd={displayEnd} />}
       />
 
       <main className="pt-20 px-6 max-w-2xl mx-auto space-y-5">
@@ -166,7 +246,7 @@ export default function InGame() {
                 <div className="flex flex-col items-center">
                   <span className="text-[9px] font-black uppercase tracking-widest text-primary opacity-70">Энд</span>
                   <span className="text-xl font-black font-headline leading-none mt-0.5 text-primary">
-                    {currentEnd}
+                    {displayEnd}
                     <span className="text-xs opacity-40 ml-0.5">/{game.max_ends}</span>
                   </span>
                 </div>
@@ -175,11 +255,16 @@ export default function InGame() {
                 <div className="flex flex-col items-center">
                   <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Камень</span>
                   <span className="text-xl font-black font-headline text-slate-600 leading-none mt-0.5">
-                    {effectiveShotNumber}
+                    {displayShotNumber}
                     <span className="text-xs opacity-40 ml-0.5">/16</span>
                   </span>
                 </div>
               </div>
+              {isViewingExisting && (
+                <div className="inline-flex items-center px-3 py-1.5 bg-amber-50 rounded-2xl">
+                  <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Просмотр</span>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -191,15 +276,15 @@ export default function InGame() {
             turn={shotTurn}
             score={shotScore}
             isThrowaway={isThrowaway}
-            onTypeChange={setShotType}
-            onTurnChange={setShotTurn}
-            onScoreChange={setShotScore}
-            onThrowaway={() => setIsThrowaway(!isThrowaway)}
+            onTypeChange={handleTypeChange}
+            onTurnChange={handleTurnChange}
+            onScoreChange={handleScoreChange}
+            onThrowaway={handleThrowaway}
           />
         )}
 
-        {/* Finish early button */}
-        <div className="pt-2 space-y-8">
+        {/* Finish early + end result buttons */}
+        <div className="pt-16 space-y-8">
           {isEndComplete && (
             <button
               onClick={() => setShowEndResult(true)}
@@ -208,26 +293,28 @@ export default function InGame() {
               Записать результат энда
             </button>
           )}
-          <button
-            onClick={handleFinish}
-            className="w-full flex items-center justify-center p-4 rounded-xl border border-slate-200 text-slate-400 hover:bg-slate-50 font-headline font-bold uppercase tracking-widest text-[10px] transition-colors"
-          >
-            Завершить досрочно
-          </button>
+          {!isViewingExisting && (
+            <button
+              onClick={handleFinish}
+              className="w-full flex items-center justify-center p-4 rounded-xl border border-slate-200 text-slate-400 hover:bg-slate-50 font-headline font-bold uppercase tracking-widest text-[10px] transition-colors"
+            >
+              Завершить досрочно
+            </button>
+          )}
         </div>
       </main>
 
       {/* Footer navigation */}
       <footer className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-8 pt-4 bg-white/80 backdrop-blur-md border-t border-slate-100">
         <button
-          onClick={() => void navigate('/')}
+          onClick={handlePrev}
           className="flex items-center justify-center text-primary transition-colors"
         >
           <ChevronLeft size={32} />
         </button>
         <button
-          onClick={handleNextShot}
-          disabled={createShot.isPending}
+          onClick={handleNext}
+          disabled={createShot.isPending || updateShot.isPending}
           className="flex items-center justify-center text-primary transition-colors disabled:opacity-40"
         >
           <ChevronRight size={32} />

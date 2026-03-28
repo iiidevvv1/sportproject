@@ -57,6 +57,19 @@ export function finishGame(id: number): Promise<Game> {
   });
 }
 
+export function resumeGame(id: number): Promise<Game> {
+  return fetchJson<Game>(`/games/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status: 'active' }),
+  });
+}
+
+export function deleteLastShot(gameId: number): Promise<{ ok: boolean }> {
+  return fetchJson<{ ok: boolean }>(`/games/${gameId}/shots/last`, {
+    method: 'DELETE',
+  });
+}
+
 export function deleteGame(id: number): Promise<{ ok: boolean }> {
   return fetchJson<{ ok: boolean }>(`/games/${id}`, {
     method: 'DELETE',

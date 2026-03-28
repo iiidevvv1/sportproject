@@ -71,8 +71,8 @@ export function gamesRouter(ctx: AppContext): Router {
   router.put('/:id/status', (req: Request, res: Response) => {
     const { status } = req.body as { status?: string };
 
-    if (status !== 'finished') {
-      res.status(400).json({ error: 'Invalid status. Use "finished"' });
+    if (status !== 'finished' && status !== 'active') {
+      res.status(400).json({ error: 'Invalid status. Use "finished" or "active"' });
       return;
     }
 
