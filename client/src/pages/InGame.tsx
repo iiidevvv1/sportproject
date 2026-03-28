@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { ChevronLeft, ChevronRight, MapPin, Check } from 'lucide-react';
 import Header from '../components/Header';
 import ScoreBoard from '../components/ScoreBoard';
 import ShotInput from '../components/ShotInput';
@@ -14,8 +14,12 @@ const SHOTS_PER_END = 16;
 
 export default function InGame() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const gameId = Number(id);
+
+  // If came from "resume" (Stats page), start in review mode at first shot
+  const isResumeMode = searchParams.get('review') === '1';
 
   const { data: game, isLoading } = useGame(gameId);
   const createShot = useCreateShot(gameId);
@@ -25,7 +29,8 @@ export default function InGame() {
 
   // viewIndex: which shot position we're viewing (0-based index into all shots)
   // null = "new shot" position (past the last recorded shot)
-  const [viewIndex, setViewIndex] = useState<number | null>(null);
+  // For resume mode, start at 0 (first shot)
+  const [viewIndex, setViewIndex] = useState<number | null>(isResumeMode ? 0 : null);
 
   const [shotType, setShotType] = useState<ShotType>('draw');
   const [shotTurn, setShotTurn] = useState<TurnType>('inturn');
@@ -33,8 +38,14 @@ export default function InGame() {
   const [isThrowaway, setIsThrowaway] = useState(false);
   const [showEndResult, setShowEndResult] = useState(false);
   const [showTieDialog, setShowTieDialog] = useState(false);
+  const [showEndOfGameDialog, setShowEndOfGameDialog] = useState(false);
+  const [showJumpDialog, setShowJumpDialog] = useState(false);
   // Track if current viewed shot was edited
   const [isDirty, setIsDirty] = useState(false);
+  // Track if any shot was edited in this session (for badge)
+  const [hasEdited, setHasEdited] = useState(false);
+  // Track if first shot has been loaded in resume mode
+  const [resumeLoaded, setResumeLoaded] = useState(false);
 
   if (isLoading || !game) {
     return (
@@ -48,6 +59,23 @@ export default function InGame() {
   const allShots = [...game.shots].sort(
     (a, b) => a.end_number - b.end_number || a.shot_number - b.shot_number,
   );
+
+  // Load first shot in resume mode (once)
+  if (isResumeMode && !resumeLoaded && allShots.length > 0 && viewIndex === 0) {
+    const firstShot = allShots[0]!;
+    if (firstShot.is_throwaway) {
+      setIsThrowaway(true);
+      setShotType('draw');
+      setShotTurn('inturn');
+      setShotScore(100);
+    } else {
+      setIsThrowaway(false);
+      setShotType((firstShot.type as ShotType) ?? 'draw');
+      setShotTurn((firstShot.turn as TurnType) ?? 'inturn');
+      setShotScore((firstShot.score as ScoreValue) ?? 100);
+    }
+    setResumeLoaded(true);
+  }
 
   const completedEnds = game.ends.length;
   const isViewingExisting = viewIndex !== null && viewIndex < allShots.length;
@@ -66,6 +94,9 @@ export default function InGame() {
   const shotInfo = getShotInfo(displayShotNumber, hammerThisEnd);
 
   const isEndComplete = !isViewingExisting && shotsInCurrentEnd.length >= SHOTS_PER_END;
+
+  // Get unique end numbers from shots
+  const endNumbers = [...new Set(allShots.map((s) => s.end_number))].sort((a, b) => a - b);
 
   // Load viewed shot data into form
   const loadShotIntoForm = useCallback((shot: Shot) => {
@@ -98,20 +129,48 @@ export default function InGame() {
   const handleScoreChange = (v: ScoreValue) => { setShotScore(v); setIsDirty(true); };
   const handleThrowaway = () => { setIsThrowaway(!isThrowaway); setIsDirty(true); };
 
+  // Save current dirty shot if editing
+  const saveDirtyShot = () => {
+    if (isDirty && viewedShot) {
+      updateShot.mutate({
+        shotNumber: viewedShot.shot_number,
+        end_number: viewedShot.end_number,
+        type: isThrowaway ? null : shotType,
+        turn: isThrowaway ? null : shotTurn,
+        score: isThrowaway ? null : shotScore,
+        is_throwaway: isThrowaway,
+      });
+      setHasEdited(true);
+      setIsDirty(false);
+    }
+  };
+
+  // Jump to specific end/shot
+  const handleJump = (endNum: number, shotNum: number) => {
+    const idx = allShots.findIndex((s) => s.end_number === endNum && s.shot_number === shotNum);
+    if (idx >= 0) {
+      saveDirtyShot();
+      setViewIndex(idx);
+      loadShotIntoForm(allShots[idx]!);
+    }
+    setShowJumpDialog(false);
+  };
+
   // Navigate to previous shot
   const handlePrev = () => {
+    saveDirtyShot();
     if (isViewingExisting && viewIndex > 0) {
-      // Go to previous existing shot
       const prevShot = allShots[viewIndex - 1]!;
       setViewIndex(viewIndex - 1);
       loadShotIntoForm(prevShot);
     } else if (!isViewingExisting && allShots.length > 0) {
-      // From "new" position, go to last existing shot
       const lastIdx = allShots.length - 1;
       setViewIndex(lastIdx);
       loadShotIntoForm(allShots[lastIdx]!);
+    } else if (isViewingExisting && viewIndex === 0) {
+      // At first shot — go home
+      void navigate('/');
     } else {
-      // First shot, first end — go home
       void navigate('/');
     }
   };
@@ -129,6 +188,7 @@ export default function InGame() {
           score: isThrowaway ? null : shotScore,
           is_throwaway: isThrowaway,
         });
+        setHasEdited(true);
       }
 
       // Move to next
@@ -137,9 +197,8 @@ export default function InGame() {
         setViewIndex(viewIndex + 1);
         loadShotIntoForm(nextShot);
       } else {
-        // Past last existing shot — go to "new" position
-        setViewIndex(null);
-        resetForm();
+        // Past last existing shot — show dialog: continue or finish?
+        setShowEndOfGameDialog(true);
       }
     } else {
       // New shot mode
@@ -161,6 +220,19 @@ export default function InGame() {
 
       resetForm();
     }
+  };
+
+  const handleSaveAndFinish = () => {
+    saveDirtyShot();
+    finishGame.mutate(gameId, {
+      onSuccess: () => void navigate(`/games/${gameId}/stats`),
+    });
+  };
+
+  const handleContinueGame = () => {
+    setShowEndOfGameDialog(false);
+    setViewIndex(null);
+    resetForm();
   };
 
   const handleEndResult = (result: { scorer: TeamSide | null; stones: number }) => {
@@ -213,6 +285,12 @@ export default function InGame() {
     });
   };
 
+  // Badge text
+  const badgeText = isViewingExisting
+    ? (hasEdited || isDirty ? 'Редактирование' : 'Просмотр')
+    : null;
+  const badgeColor = hasEdited || isDirty ? 'bg-orange-50 text-orange-600' : 'bg-amber-50 text-amber-600';
+
   return (
     <div className="min-h-screen bg-[#f8f9ff] pb-32">
       <Header
@@ -260,9 +338,9 @@ export default function InGame() {
                   </span>
                 </div>
               </div>
-              {isViewingExisting && (
-                <div className="inline-flex items-center px-3 py-1.5 bg-amber-50 rounded-2xl">
-                  <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Просмотр</span>
+              {badgeText && (
+                <div className={`inline-flex items-center px-3 py-1.5 rounded-2xl ${badgeColor}`}>
+                  <span className="text-[10px] font-bold uppercase tracking-wider">{badgeText}</span>
                 </div>
               )}
             </div>
@@ -283,8 +361,8 @@ export default function InGame() {
           />
         )}
 
-        {/* Finish early + end result buttons */}
-        <div className="pt-16 space-y-8">
+        {/* Action buttons */}
+        <div className="pt-16 space-y-4">
           {isEndComplete && (
             <button
               onClick={() => setShowEndResult(true)}
@@ -293,6 +371,30 @@ export default function InGame() {
               Записать результат энда
             </button>
           )}
+
+          {/* Jump to shot button — only in review mode */}
+          {isViewingExisting && allShots.length > 1 && (
+            <button
+              onClick={() => setShowJumpDialog(true)}
+              className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border border-blue-200 text-blue-500 hover:bg-blue-50 font-headline font-bold text-sm transition-colors"
+            >
+              <MapPin size={16} />
+              Перейти к броску…
+            </button>
+          )}
+
+          {/* Save and finish — always visible in review mode */}
+          {isViewingExisting && (
+            <button
+              onClick={handleSaveAndFinish}
+              disabled={finishGame.isPending}
+              className="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-green-500 text-white hover:bg-green-600 font-headline font-bold text-sm transition-colors shadow-md disabled:opacity-60"
+            >
+              <Check size={16} />
+              Сохранить и завершить
+            </button>
+          )}
+
           {!isViewingExisting && (
             <button
               onClick={handleFinish}
@@ -331,6 +433,45 @@ export default function InGame() {
         />
       )}
 
+      {/* End of game dialog — continue or finish? */}
+      {showEndOfGameDialog && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-6">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center space-y-6 shadow-2xl">
+            <h3 className="font-headline font-bold text-xl text-[#0d1c2e]">
+              Последний записанный бросок
+            </h3>
+            <p className="text-slate-500 text-sm">
+              Продолжить игру (добавить новые броски) или сохранить и завершить?
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleContinueGame}
+                className="w-full py-4 rounded-xl bg-primary text-white font-headline font-bold tracking-wide shadow-md"
+              >
+                Продолжить игру
+              </button>
+              <button
+                onClick={handleSaveAndFinish}
+                disabled={finishGame.isPending}
+                className="w-full py-4 rounded-xl border border-slate-200 text-slate-500 font-headline font-bold tracking-wide hover:bg-slate-50 disabled:opacity-60"
+              >
+                Сохранить и завершить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Jump to shot dialog */}
+      {showJumpDialog && (
+        <JumpDialog
+          endNumbers={endNumbers}
+          allShots={allShots}
+          onJump={handleJump}
+          onClose={() => setShowJumpDialog(false)}
+        />
+      )}
+
       {/* Tie dialog */}
       {showTieDialog && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-6">
@@ -358,6 +499,96 @@ export default function InGame() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Jump dialog component
+function JumpDialog({
+  endNumbers,
+  allShots,
+  onJump,
+  onClose,
+}: {
+  endNumbers: number[];
+  allShots: Shot[];
+  onJump: (endNum: number, shotNum: number) => void;
+  onClose: () => void;
+}) {
+  const [selectedEnd, setSelectedEnd] = useState(endNumbers[0] ?? 1);
+  const shotsInEnd = allShots.filter((s) => s.end_number === selectedEnd);
+  const shotNumbers = shotsInEnd.map((s) => s.shot_number).sort((a, b) => a - b);
+  const [selectedShot, setSelectedShot] = useState(shotNumbers[0] ?? 1);
+
+  // Reset shot when end changes
+  const handleEndChange = (endNum: number) => {
+    setSelectedEnd(endNum);
+    const shots = allShots.filter((s) => s.end_number === endNum);
+    setSelectedShot(shots[0]?.shot_number ?? 1);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-6">
+      <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-5 shadow-2xl">
+        <h3 className="font-headline font-bold text-lg text-[#0d1c2e] text-center">
+          Перейти к броску
+        </h3>
+
+        {/* End selector */}
+        <div>
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Энд</label>
+          <div className="flex flex-wrap gap-2">
+            {endNumbers.map((e) => (
+              <button
+                key={e}
+                onClick={() => handleEndChange(e)}
+                className={`w-10 h-10 rounded-xl font-headline font-bold text-sm transition-colors ${
+                  selectedEnd === e
+                    ? 'bg-primary text-white shadow-md'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Shot selector */}
+        <div>
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 block">Камень</label>
+          <div className="flex flex-wrap gap-2">
+            {shotNumbers.map((s) => (
+              <button
+                key={s}
+                onClick={() => setSelectedShot(s)}
+                className={`w-10 h-10 rounded-xl font-headline font-bold text-sm transition-colors ${
+                  selectedShot === s
+                    ? 'bg-primary text-white shadow-md'
+                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-500 font-headline font-bold text-sm hover:bg-slate-50"
+          >
+            Отмена
+          </button>
+          <button
+            onClick={() => onJump(selectedEnd, selectedShot)}
+            className="flex-1 py-3 rounded-xl bg-primary text-white font-headline font-bold text-sm shadow-md"
+          >
+            Перейти
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

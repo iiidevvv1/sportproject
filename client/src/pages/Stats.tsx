@@ -348,7 +348,7 @@ export default function Stats() {
             <button
               onClick={() => {
                 resumeGame.mutate(gameId, {
-                  onSuccess: () => void navigate(`/games/${gameId}/play`),
+                  onSuccess: () => void navigate(`/games/${gameId}/play?review=1`),
                 });
               }}
               disabled={resumeGame.isPending}
