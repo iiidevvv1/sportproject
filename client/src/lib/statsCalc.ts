@@ -24,6 +24,13 @@ export interface DisplayPlayerStats {
   // For progress bar: distribution of inturn vs outturn within takeout
   takeoutInturnDist: number;
   takeoutOutturnDist: number;
+  // Shot counts by type
+  drawCount: number;
+  takeoutCount: number;
+  drawInturnCount: number;
+  drawOutturnCount: number;
+  takeoutInturnCount: number;
+  takeoutOutturnCount: number;
 }
 
 export interface DisplayTeamStats {
@@ -40,6 +47,16 @@ const POSITION_NAMES_MAP: Record<number, string> = {
 };
 
 function toDisplay(ps: PlayerStats): DisplayPlayerStats {
+  // Calculate shot counts by type from percentages
+  const drawCount = Math.round((ps.shot_count * ps.draw_avg) / 100);
+  const takeoutCount = ps.shot_count - drawCount;
+  
+  const drawInturnCount = Math.round((drawCount * ps.inturn_draw_avg) / 100);
+  const drawOutturnCount = drawCount - drawInturnCount;
+  
+  const takeoutInturnCount = Math.round((takeoutCount * ps.inturn_takeout_avg) / 100);
+  const takeoutOutturnCount = takeoutCount - takeoutInturnCount;
+
   // We don't have per-type inturn/outturn counts from API, so we estimate distribution
   // from averages: if both are non-zero, show 50/50; otherwise show 100/0
   const drawInturnDist = ps.inturn_draw_avg > 0 && ps.outturn_draw_avg > 0 ? 50 : ps.inturn_draw_avg > 0 ? 100 : 0;
@@ -64,6 +81,12 @@ function toDisplay(ps: PlayerStats): DisplayPlayerStats {
     drawOutturnDist,
     takeoutInturnDist,
     takeoutOutturnDist,
+    drawCount,
+    takeoutCount,
+    drawInturnCount,
+    drawOutturnCount,
+    takeoutInturnCount,
+    takeoutOutturnCount,
   };
 }
 

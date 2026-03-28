@@ -306,30 +306,30 @@ export default function Stats() {
                   {/* Row 1: Draw/Take headers with counts and percentages */}
                   <div className="grid grid-cols-2 divide-x divide-slate-100">
                     <div className="px-6 py-4 text-sm font-bold text-slate-600">
-                      Draw {player.drawInturnDist + player.drawOutturnDist} / {player.drawAvg}%
+                      Draw {player.drawCount} / {player.drawAvg}%
                     </div>
                     <div className="px-6 py-4 text-sm font-bold text-slate-600">
-                      Take {player.takeoutInturnDist + player.takeoutOutturnDist} / {player.takeoutAvg}%
+                      Take {player.takeoutCount} / {player.takeoutAvg}%
                     </div>
                   </div>
 
                   {/* Row 2: In */}
                   <div className="grid grid-cols-2 divide-x divide-slate-100">
                     <div className="px-6 py-4 text-sm text-slate-600">
-                      In {player.drawInturnDist} / {player.inturnDrawAvg}%
+                      In {player.drawInturnCount} / {player.inturnDrawAvg}%
                     </div>
                     <div className="px-6 py-4 text-sm text-slate-600">
-                      In {player.takeoutInturnDist} / {player.inturnTakeoutAvg}%
+                      In {player.takeoutInturnCount} / {player.inturnTakeoutAvg}%
                     </div>
                   </div>
 
                   {/* Row 3: Out */}
                   <div className="grid grid-cols-2 divide-x divide-slate-100">
                     <div className="px-6 py-4 text-sm text-slate-600">
-                      Out {player.drawOutturnDist} / {player.outturnDrawAvg}%
+                      Out {player.drawOutturnCount} / {player.outturnDrawAvg}%
                     </div>
                     <div className="px-6 py-4 text-sm text-slate-600">
-                      Out {player.takeoutOutturnDist} / {player.outturnTakeoutAvg}%
+                      Out {player.takeoutOutturnCount} / {player.outturnTakeoutAvg}%
                     </div>
                   </div>
                 </div>
