@@ -85,21 +85,8 @@ jobs:
           cat > /tmp/deploy_script.sh << 'DEPLOY_SCRIPT'
           set -ex
           
-          # Ensure docker compose v2 plugin is installed (v1 has ContainerConfig bug)
-          if ! docker compose version &>/dev/null; then
-            echo "=== Installing docker compose v2 plugin ==="
-            DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
-            mkdir -p $DOCKER_CONFIG/cli-plugins
-            ARCH=$(uname -m)
-            if [ "$ARCH" = "x86_64" ]; then ARCH="x86_64"; elif [ "$ARCH" = "aarch64" ]; then ARCH="aarch64"; fi
-            curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${ARCH}" -o $DOCKER_CONFIG/cli-plugins/docker-compose
-            chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
-          fi
-          
-          echo "=== Using: docker compose $(docker compose version) ==="
-          
-          echo "=== Starting deploy ==="
           cd /app
+          echo "=== Using: docker compose $(docker compose version) ==="
           echo "=== Pulling latest code ==="
           git fetch origin main && git reset --hard origin/main
           echo "=== Stopping old containers ==="
