@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ChevronLeft, BarChart2, Users, Star, Shield, Sigma, Crosshair, XCircle } from 'lucide-react';
+import { ChevronLeft, BarChart2, Users, Star, Shield, Sigma } from 'lucide-react';
 import Header from '../components/Header';
-import SplitProgressBar from '../components/SplitProgressBar';
 import { useGame, useGameStats } from '../hooks/useGame';
 import { toDisplayStats } from '../lib/statsCalc';
 import { STONE_COLORS } from '../types';
@@ -290,69 +289,47 @@ export default function Stats() {
             {home.players.map((player, idx) => (
               <div
                 key={player.position}
-                className="relative bg-white rounded-xl p-6 shadow-sm border border-slate-100 overflow-hidden"
+                className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden"
               >
-                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-primary" />
-                <div className="flex justify-between items-start mb-6">
-                  <h3 className="font-headline text-2xl font-bold text-[#0d1c2e]">
+                {/* Header row */}
+                <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                  <h3 className="font-headline text-lg font-bold text-[#0d1c2e]">
                     {POSITION_LABELS_FULL[idx]}
                   </h3>
-                  <div className="text-right">
-                    <p className="text-4xl font-extrabold font-headline text-primary">
-                      {player.avg}
-                      <span className="text-lg opacity-60">%</span>
-                    </p>
-                    <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
-                      {player.shotCount} ВСЕГО БРОСКОВ
-                    </p>
+                  <div className="text-right text-sm font-bold text-slate-600">
+                    {player.shotCount} / <span className="text-primary font-black">{player.avg}%</span>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-8 relative">
-                  <div className="absolute left-1/2 top-4 bottom-0 w-[1px] bg-slate-100 -translate-x-1/2" />
 
-                  {/* Draw section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Crosshair className="text-primary" size={14} />
-                        <span className="font-bold text-[10px] uppercase tracking-widest text-[#0d1c2e]">Draw</span>
-                      </div>
-                      <span className="text-xs font-black text-primary">{player.drawAvg}%</span>
+                {/* Table with Draw/Take, In, Out */}
+                <div className="divide-y divide-slate-100">
+                  {/* Row 1: Draw/Take headers with counts and percentages */}
+                  <div className="grid grid-cols-2 divide-x divide-slate-100">
+                    <div className="px-6 py-4 text-sm font-bold text-slate-600">
+                      Draw {player.drawInturnDist + player.drawOutturnDist} / {player.drawAvg}%
                     </div>
-                    <div className="space-y-3">
-                      <SplitProgressBar
-                        inValue={player.drawInturnDist}
-                        outValue={player.drawOutturnDist}
-                        inColor={STONE_COLORS['blue']}
-                        outColor={`${STONE_COLORS['blue']}4d`}
-                      />
-                      <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
-                        <span>In: {player.inturnDrawAvg}%</span>
-                        <span>Out: {player.outturnDrawAvg}%</span>
-                      </div>
+                    <div className="px-6 py-4 text-sm font-bold text-slate-600">
+                      Take {player.takeoutInturnDist + player.takeoutOutturnDist} / {player.takeoutAvg}%
                     </div>
                   </div>
 
-                  {/* Takeout section */}
-                  <div className="space-y-4 pl-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <XCircle className="text-primary" size={14} />
-                        <span className="font-bold text-[10px] uppercase tracking-widest text-[#0d1c2e]">Takeout</span>
-                      </div>
-                      <span className="text-xs font-black text-primary">{player.takeoutAvg}%</span>
+                  {/* Row 2: In */}
+                  <div className="grid grid-cols-2 divide-x divide-slate-100">
+                    <div className="px-6 py-4 text-sm text-slate-600">
+                      In {player.drawInturnDist} / {player.inturnDrawAvg}%
                     </div>
-                    <div className="space-y-3">
-                      <SplitProgressBar
-                        inValue={player.takeoutInturnDist}
-                        outValue={player.takeoutOutturnDist}
-                        inColor={STONE_COLORS['blue']}
-                        outColor={`${STONE_COLORS['blue']}4d`}
-                      />
-                      <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase tracking-tighter">
-                        <span>In: {player.inturnTakeoutAvg}%</span>
-                        <span>Out: {player.outturnTakeoutAvg}%</span>
-                      </div>
+                    <div className="px-6 py-4 text-sm text-slate-600">
+                      In {player.takeoutInturnDist} / {player.inturnTakeoutAvg}%
+                    </div>
+                  </div>
+
+                  {/* Row 3: Out */}
+                  <div className="grid grid-cols-2 divide-x divide-slate-100">
+                    <div className="px-6 py-4 text-sm text-slate-600">
+                      Out {player.drawOutturnDist} / {player.outturnDrawAvg}%
+                    </div>
+                    <div className="px-6 py-4 text-sm text-slate-600">
+                      Out {player.takeoutOutturnDist} / {player.outturnTakeoutAvg}%
                     </div>
                   </div>
                 </div>
