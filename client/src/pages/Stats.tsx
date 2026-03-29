@@ -379,6 +379,19 @@ export default function Stats() {
             </button>
           </div>
         )}
+
+        {/* Continue active game */}
+        {game.status === 'active' && (
+          <div className="pt-8 pb-8">
+            <button
+              onClick={() => void navigate(`/games/${gameId}/play`)}
+              className="w-full flex items-center justify-center gap-2 p-4 rounded-xl bg-primary text-white font-headline font-bold text-sm transition-colors shadow-md hover:bg-primary/90"
+            >
+              <ChevronLeft size={16} />
+              Продолжить игру
+            </button>
+          </div>
+        )}
       </main>
 
       {/* Delete confirmation modal */}
