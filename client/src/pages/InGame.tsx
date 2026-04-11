@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { ChevronLeft, ChevronRight, MapPin, Check } from 'lucide-react';
 import Header from '../components/Header';
@@ -61,21 +61,23 @@ export default function InGame() {
   );
 
   // Load first shot in resume mode (once)
-  if (isResumeMode && !resumeLoaded && allShots.length > 0 && viewIndex === 0) {
-    const firstShot = allShots[0]!;
-    if (firstShot.is_throwaway) {
-      setIsThrowaway(true);
-      setShotType('draw');
-      setShotTurn('inturn');
-      setShotScore(100);
-    } else {
-      setIsThrowaway(false);
-      setShotType((firstShot.type as ShotType) ?? 'draw');
-      setShotTurn((firstShot.turn as TurnType) ?? 'inturn');
-      setShotScore((firstShot.score as ScoreValue) ?? 100);
+  useEffect(() => {
+    if (isResumeMode && !resumeLoaded && allShots.length > 0 && viewIndex === 0) {
+      const firstShot = allShots[0]!;
+      if (firstShot.is_throwaway) {
+        setIsThrowaway(true);
+        setShotType('draw');
+        setShotTurn('inturn');
+        setShotScore(100);
+      } else {
+        setIsThrowaway(false);
+        setShotType((firstShot.type as ShotType) ?? 'draw');
+        setShotTurn((firstShot.turn as TurnType) ?? 'inturn');
+        setShotScore((firstShot.score as ScoreValue) ?? 100);
+      }
+      setResumeLoaded(true);
     }
-    setResumeLoaded(true);
-  }
+  }, [isResumeMode, resumeLoaded, viewIndex, allShots]);
 
   const completedEnds = game.ends.length;
   const isViewingExisting = viewIndex !== null && viewIndex < allShots.length;
