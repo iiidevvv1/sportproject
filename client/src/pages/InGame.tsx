@@ -47,47 +47,19 @@ export default function InGame() {
   // Track if first shot has been loaded in resume mode
   const [resumeLoaded, setResumeLoaded] = useState(false);
 
-  if (isLoading || !game) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-slate-400 text-sm">Загрузка...</div>
-      </div>
-    );
-  }
-
   // All shots sorted by end then shot number
+  // ALL hooks MUST be before early return to satisfy Rules of Hooks
   const allShots = useMemo(
     () => {
-      if (!game.shots || !Array.isArray(game.shots)) {
+      if (!game?.shots || !Array.isArray(game.shots)) {
         return [];
       }
       return [...game.shots].sort(
         (a, b) => a.end_number - b.end_number || a.shot_number - b.shot_number,
       );
     },
-    [game.shots],
+    [game?.shots],
   );
-
-  const completedEnds = (game.ends && Array.isArray(game.ends)) ? game.ends.length : 0;
-  const isViewingExisting = viewIndex !== null && viewIndex < allShots.length;
-  const viewedShot: Shot | undefined = isViewingExisting ? allShots[viewIndex] : undefined;
-
-  // Current end/shot for the "new shot" position
-  const currentEnd = completedEnds + 1;
-  const shotsInCurrentEnd = allShots.filter((s) => s.end_number === currentEnd);
-  const currentShotNumber = shotsInCurrentEnd.length + 1;
-
-  // The end/shot we're displaying
-  const displayEnd = viewedShot ? viewedShot.end_number : currentEnd;
-  const displayShotNumber = viewedShot ? viewedShot.shot_number : Math.min(currentShotNumber, SHOTS_PER_END);
-
-  const hammerThisEnd = getHammerForEnd(displayEnd, game.hammer_first_end, game.ends);
-  const shotInfo = getShotInfo(displayShotNumber, hammerThisEnd);
-
-  const isEndComplete = !isViewingExisting && shotsInCurrentEnd.length >= SHOTS_PER_END;
-
-  // Get unique end numbers from shots
-  const endNumbers = [...new Set(allShots.map((s) => s.end_number))].sort((a, b) => a - b);
 
   // Load viewed shot data into form
   const loadShotIntoForm = useCallback((shot: Shot) => {
@@ -119,6 +91,35 @@ export default function InGame() {
       setResumeLoaded(true);
     }
   }, [isResumeMode, resumeLoaded, viewIndex, allShots]);
+
+  if (isLoading || !game) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-slate-400 text-sm">Загрузка...</div>
+      </div>
+    );
+  }
+
+  const completedEnds = (game.ends && Array.isArray(game.ends)) ? game.ends.length : 0;
+  const isViewingExisting = viewIndex !== null && viewIndex < allShots.length;
+  const viewedShot: Shot | undefined = isViewingExisting ? allShots[viewIndex] : undefined;
+
+  // Current end/shot for the "new shot" position
+  const currentEnd = completedEnds + 1;
+  const shotsInCurrentEnd = allShots.filter((s) => s.end_number === currentEnd);
+  const currentShotNumber = shotsInCurrentEnd.length + 1;
+
+  // The end/shot we're displaying
+  const displayEnd = viewedShot ? viewedShot.end_number : currentEnd;
+  const displayShotNumber = viewedShot ? viewedShot.shot_number : Math.min(currentShotNumber, SHOTS_PER_END);
+
+  const hammerThisEnd = getHammerForEnd(displayEnd, game.hammer_first_end, game.ends);
+  const shotInfo = getShotInfo(displayShotNumber, hammerThisEnd);
+
+  const isEndComplete = !isViewingExisting && shotsInCurrentEnd.length >= SHOTS_PER_END;
+
+  // Get unique end numbers from shots
+  const endNumbers = [...new Set(allShots.map((s) => s.end_number))].sort((a, b) => a - b);
 
   // Mark dirty on any change
   const handleTypeChange = (v: ShotType) => { setShotType(v); setIsDirty(true); };
