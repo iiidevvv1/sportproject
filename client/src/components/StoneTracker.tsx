@@ -52,10 +52,10 @@ export default function StoneTracker({
             className={`
               w-5 h-5 rounded-full transition-all duration-300
               ${isHidden ? 'opacity-0 scale-75' : ''}
-              ${isCurrent ? 'animate-pulse ring-2 ring-white ring-offset-1 ring-offset-slate-800 scale-110' : ''}
+              ${isCurrent ? 'animate-pulse ring-2 ring-slate-300 ring-offset-1 scale-110' : ''}
               ${isFuture ? 'opacity-40' : ''}
               ${isReview && isCompleted ? 'opacity-60' : ''}
-              ${isReview && isCurrent ? 'opacity-100 animate-pulse ring-2 ring-white ring-offset-1 ring-offset-slate-800 scale-110' : ''}
+              ${isReview && isCurrent ? 'opacity-100 animate-pulse ring-2 ring-slate-300 ring-offset-1 scale-110' : ''}
             `}
             style={{
               backgroundColor: isHidden ? 'transparent' : STONE_COLORS[color],
@@ -68,7 +68,7 @@ export default function StoneTracker({
   };
 
   return (
-    <div className="flex flex-col items-center gap-1.5 py-2 px-4 rounded-xl bg-slate-800/90">
+    <div className="flex flex-col items-center gap-1.5 py-2 px-4">
       {/* Top row: team without hammer */}
       <div className="flex items-center gap-1">
         {renderRow(colorFirst, true)}
