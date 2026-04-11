@@ -5,6 +5,7 @@ import Header from '../components/Header';
 import ScoreBoard from '../components/ScoreBoard';
 import ShotInput from '../components/ShotInput';
 import EndResult from '../components/EndResult';
+import StoneTracker from '../components/StoneTracker';
 import { useGame, useFinishGame } from '../hooks/useGame';
 import { useCreateShot, useUpdateShot, useCreateEnd } from '../hooks/useShots';
 import { getShotInfo, getHammerForEnd } from '../lib/shotOrder';
@@ -343,6 +344,17 @@ export default function InGame() {
               )}
             </div>
           </div>
+        </section>
+
+        {/* Stone tracker */}
+        <section className="flex justify-center">
+          <StoneTracker
+            totalShots={SHOTS_PER_END}
+            currentShotNumber={displayShotNumber}
+            colorFirst={hammerThisEnd === 'home' ? game.color_away : game.color_home}
+            colorSecond={hammerThisEnd === 'home' ? game.color_home : game.color_away}
+            isReview={isViewingExisting}
+          />
         </section>
 
         {/* Shot input */}
