@@ -60,25 +60,6 @@ export default function InGame() {
     (a, b) => a.end_number - b.end_number || a.shot_number - b.shot_number,
   );
 
-  // Load first shot in resume mode (once)
-  useEffect(() => {
-    if (isResumeMode && !resumeLoaded && allShots.length > 0 && viewIndex === 0) {
-      const firstShot = allShots[0]!;
-      if (firstShot.is_throwaway) {
-        setIsThrowaway(true);
-        setShotType('draw');
-        setShotTurn('inturn');
-        setShotScore(100);
-      } else {
-        setIsThrowaway(false);
-        setShotType((firstShot.type as ShotType) ?? 'draw');
-        setShotTurn((firstShot.turn as TurnType) ?? 'inturn');
-        setShotScore((firstShot.score as ScoreValue) ?? 100);
-      }
-      setResumeLoaded(true);
-    }
-  }, [isResumeMode, resumeLoaded, viewIndex, allShots]);
-
   const completedEnds = game.ends.length;
   const isViewingExisting = viewIndex !== null && viewIndex < allShots.length;
   const viewedShot: Shot | undefined = isViewingExisting ? allShots[viewIndex] : undefined;
@@ -102,17 +83,10 @@ export default function InGame() {
 
   // Load viewed shot data into form
   const loadShotIntoForm = useCallback((shot: Shot) => {
-    if (shot.is_throwaway) {
-      setIsThrowaway(true);
-      setShotType('draw');
-      setShotTurn('inturn');
-      setShotScore(100);
-    } else {
-      setIsThrowaway(false);
-      setShotType((shot.type as ShotType) ?? 'draw');
-      setShotTurn((shot.turn as TurnType) ?? 'inturn');
-      setShotScore((shot.score as ScoreValue) ?? 100);
-    }
+    setShotType((shot.type as ShotType) ?? 'draw');
+    setShotTurn((shot.turn as TurnType) ?? 'inturn');
+    setShotScore((shot.score as ScoreValue) ?? 100);
+    setIsThrowaway(Boolean(shot.is_throwaway));
     setIsDirty(false);
   }, []);
 
@@ -124,6 +98,14 @@ export default function InGame() {
     setIsThrowaway(false);
     setIsDirty(false);
   }, []);
+
+  // Load first shot in resume mode (once)
+  useEffect(() => {
+    if (isResumeMode && !resumeLoaded && allShots.length > 0 && viewIndex === 0) {
+      loadShotIntoForm(allShots[0]!);
+      setResumeLoaded(true);
+    }
+  }, [isResumeMode, resumeLoaded, viewIndex, allShots, loadShotIntoForm]);
 
   // Mark dirty on any change
   const handleTypeChange = (v: ShotType) => { setShotType(v); setIsDirty(true); };
