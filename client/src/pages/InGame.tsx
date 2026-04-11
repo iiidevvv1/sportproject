@@ -68,7 +68,7 @@ export default function InGame() {
     [game.shots],
   );
 
-  const completedEnds = game.ends.length;
+  const completedEnds = (game.ends && Array.isArray(game.ends)) ? game.ends.length : 0;
   const isViewingExisting = viewIndex !== null && viewIndex < allShots.length;
   const viewedShot: Shot | undefined = isViewingExisting ? allShots[viewIndex] : undefined;
 
@@ -110,10 +110,15 @@ export default function InGame() {
   // Load first shot in resume mode (once)
   useEffect(() => {
     if (isResumeMode && !resumeLoaded && allShots.length > 0 && viewIndex === 0) {
-      loadShotIntoForm(allShots[0]!);
+      const shot = allShots[0]!;
+      setShotType((shot.type as ShotType) ?? 'draw');
+      setShotTurn((shot.turn as TurnType) ?? 'inturn');
+      setShotScore((shot.score as ScoreValue) ?? 100);
+      setIsThrowaway(Boolean(shot.is_throwaway));
+      setIsDirty(false);
       setResumeLoaded(true);
     }
-  }, [isResumeMode, resumeLoaded, viewIndex, allShots, loadShotIntoForm]);
+  }, [isResumeMode, resumeLoaded, viewIndex, allShots]);
 
   // Mark dirty on any change
   const handleTypeChange = (v: ShotType) => { setShotType(v); setIsDirty(true); };
