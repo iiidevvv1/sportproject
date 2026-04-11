@@ -57,10 +57,14 @@ export default function InGame() {
 
   // All shots sorted by end then shot number
   const allShots = useMemo(
-    () =>
-      [...game.shots].sort(
+    () => {
+      if (!game.shots || !Array.isArray(game.shots)) {
+        return [];
+      }
+      return [...game.shots].sort(
         (a, b) => a.end_number - b.end_number || a.shot_number - b.shot_number,
-      ),
+      );
+    },
     [game.shots],
   );
 
