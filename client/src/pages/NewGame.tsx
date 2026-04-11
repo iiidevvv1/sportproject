@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft, ArrowRight, Info } from 'lucide-react';
 import Header from '../components/Header';
 import ColorPicker from '../components/ColorPicker';
@@ -8,6 +9,7 @@ import type { StoneColor, TeamSide } from '../types';
 
 export default function NewGame() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const createGame = useCreateGame();
   const { data: games = [] } = useGames();
   const hasActiveGame = games.some((g) => g.status === 'active');
@@ -57,6 +59,8 @@ export default function NewGame() {
       },
       {
         onSuccess: (game) => {
+          // Ensure game data is in cache before navigating
+          void queryClient.setQueryData(['game', game.id], game);
           void navigate(`/games/${game.id}/play`);
         },
       },

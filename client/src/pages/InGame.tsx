@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { ChevronLeft, ChevronRight, MapPin, Check } from 'lucide-react';
 import Header from '../components/Header';
@@ -56,8 +56,12 @@ export default function InGame() {
   }
 
   // All shots sorted by end then shot number
-  const allShots = [...game.shots].sort(
-    (a, b) => a.end_number - b.end_number || a.shot_number - b.shot_number,
+  const allShots = useMemo(
+    () =>
+      [...game.shots].sort(
+        (a, b) => a.end_number - b.end_number || a.shot_number - b.shot_number,
+      ),
+    [game.shots],
   );
 
   const completedEnds = game.ends.length;
