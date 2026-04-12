@@ -23,50 +23,48 @@ export default function StoneTracker({
   const bottomRowShots = [2, 4, 6, 8, 10, 12, 14, 16];
 
   const renderRow = (allShots: number[], color: StoneColor) => {
-    // Divide into 4 pairs: [0,1], [2,3], [4,5], [6,7]
-    const pairs = [];
-    for (let i = 0; i < 8; i += 2) {
-      pairs.push([allShots[i], allShots[i + 1]]);
-    }
-
     return (
-      <div className="flex items-center justify-center">
-        {pairs.map((pair, pairIdx) => (
-          <div key={pairIdx} className="flex items-center">
-            {/* Pair of stones */}
-            <div className="flex items-center gap-1">
-              {pair.map((shotNumber) => {
-                if (shotNumber === undefined) return null;
-                
-                // Only render stones that haven't been played yet
-                if (shotNumber < currentShotNumber) return null;
-                
-                const isCurrent = shotNumber === currentShotNumber;
-                const isFuture = shotNumber > currentShotNumber;
+      <div className="flex items-center justify-center relative">
+        {/* Fixed grid: 8 stones + 3 dividers between pairs */}
+        <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(8, 20px)' }}>
+          {allShots.map((shotNumber) => {
+            if (shotNumber === undefined) return null;
 
-                return (
-                  <div
-                    key={shotNumber}
-                    className={`
-                      w-5 h-5 rounded-full transition-all duration-300 relative z-10
-                      ${isCurrent && !isReview ? 'animate-pulse ring-3 ring-slate-900 scale-110' : ''}
-                      ${isCurrent && isReview ? 'ring-3 ring-slate-900' : ''}
-                      ${isFuture ? 'opacity-40' : ''}
-                    `}
-                    style={{
-                      backgroundColor: STONE_COLORS[color],
-                    }}
-                  />
-                );
-              })}
-            </div>
+            // Only render stones that haven't been played yet
+            if (shotNumber < currentShotNumber) {
+              return <div key={shotNumber} />;
+            }
 
-            {/* Vertical divider after pairs 1, 2, 3 (not after pair 4) */}
-            {pairIdx < 3 && (
-              <div className="w-px h-6 bg-slate-400 mx-3" />
-            )}
-          </div>
-        ))}
+            const isCurrent = shotNumber === currentShotNumber;
+            const isFuture = shotNumber > currentShotNumber;
+
+            return (
+              <div
+                key={shotNumber}
+                className={`
+                  w-5 h-5 rounded-full transition-all duration-300 relative
+                  ${isCurrent && !isReview ? 'animate-pulse ring-3 ring-slate-900 scale-110' : ''}
+                  ${isCurrent && isReview ? 'ring-3 ring-slate-900' : ''}
+                  ${isFuture ? 'opacity-40' : ''}
+                `}
+                style={{
+                  backgroundColor: STONE_COLORS[color],
+                }}
+              />
+            );
+          })}
+        </div>
+
+        {/* Fixed vertical dividers at absolute positions */}
+        <div className="absolute top-0 bottom-0 flex items-center" style={{ left: '50px' }}>
+          <div className="w-px h-6 bg-slate-400" />
+        </div>
+        <div className="absolute top-0 bottom-0 flex items-center" style={{ left: '78px' }}>
+          <div className="w-px h-6 bg-slate-400" />
+        </div>
+        <div className="absolute top-0 bottom-0 flex items-center" style={{ left: '106px' }}>
+          <div className="w-px h-6 bg-slate-400" />
+        </div>
       </div>
     );
   };
