@@ -1,3 +1,4 @@
+import React from 'react';
 import { STONE_COLORS, type StoneColor } from '../types';
 
 interface StoneTrackerProps {
@@ -17,8 +18,8 @@ export default function StoneTracker({
   colorSecond,
   isReview = false,
 }: StoneTrackerProps) {
-  // Top row (odd): 1,3,5,7,9,11,13,15 → pairs: [1,3], [5,7], [9,11], [13,15]
-  // Bottom row (even): 2,4,6,8,10,12,14,16 → pairs: [2,4], [6,8], [10,12], [14,16]
+  // Pairs: [1,3], [5,7], [9,11], [13,15] (odd shots - team without hammer)
+  //        [2,4], [6,8], [10,12], [14,16] (even shots - team with hammer)
   const topRowPairs = [[1, 3], [5, 7], [9, 11], [13, 15]];
   const bottomRowPairs = [[2, 4], [6, 8], [10, 12], [14, 16]];
 
@@ -48,21 +49,27 @@ export default function StoneTracker({
   };
 
   const renderRow = (pairs: number[][], color: StoneColor) => {
+    const elements: React.ReactNode[] = [];
+
+    pairs.forEach((pair, pairIdx) => {
+      // Add pair
+      elements.push(
+        <div key={`pair-${pairIdx}`} className="flex gap-1">
+          {pair.map((shot) => renderStone(shot, color))}
+        </div>
+      );
+
+      // Add divider after each pair except the last
+      if (pairIdx < pairs.length - 1) {
+        elements.push(
+          <div key={`divider-${pairIdx}`} className="w-px h-6 bg-slate-400" />
+        );
+      }
+    });
+
     return (
       <div className="flex items-center gap-2">
-        {pairs.map((pair, pairIdx) => (
-          <div key={pairIdx} className="flex items-center gap-1">
-            {/* Pair of stones */}
-            <div className="flex gap-1">
-              {pair.map((shot) => renderStone(shot, color))}
-            </div>
-
-            {/* Vertical divider after each pair except the last */}
-            {pairIdx < pairs.length - 1 && (
-              <div className="w-px h-6 bg-slate-400" />
-            )}
-          </div>
-        ))}
+        {elements}
       </div>
     );
   };
