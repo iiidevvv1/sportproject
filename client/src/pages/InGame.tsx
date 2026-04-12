@@ -114,6 +114,9 @@ export default function InGame() {
   const displayEnd = viewedShot ? viewedShot.end_number : currentEnd;
   const displayShotNumber = viewedShot ? viewedShot.shot_number : Math.min(currentShotNumber, SHOTS_PER_END);
 
+  // For StoneTracker: show from currentShotNumber in normal mode, or from viewedShot in review
+  const trackerShotNumber = isViewingExisting ? (viewedShot?.shot_number ?? 1) : currentShotNumber;
+
   const hammerThisEnd = getHammerForEnd(displayEnd, game.hammer_first_end, game.ends);
   const shotInfo = getShotInfo(displayShotNumber, hammerThisEnd);
 
@@ -349,7 +352,7 @@ export default function InGame() {
         {/* Stone tracker */}
         <section className="flex justify-center">
           <StoneTracker
-            currentShotNumber={displayShotNumber}
+            currentShotNumber={trackerShotNumber}
             colorFirst={hammerThisEnd === 'home' ? game.color_away : game.color_home}
             colorSecond={hammerThisEnd === 'home' ? game.color_home : game.color_away}
             isReview={isViewingExisting}
