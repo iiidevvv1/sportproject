@@ -17,68 +17,66 @@ export default function StoneTracker({
   colorSecond,
   isReview = false,
 }: StoneTrackerProps) {
-  // Top row (odd): 1,3,5,7,9,11,13,15
-  // Bottom row (even): 2,4,6,8,10,12,14,16
-  const topRowShots = [1, 3, 5, 7, 9, 11, 13, 15];
-  const bottomRowShots = [2, 4, 6, 8, 10, 12, 14, 16];
+  // Top row (odd): 1,3,5,7,9,11,13,15 → pairs: [1,3], [5,7], [9,11], [13,15]
+  // Bottom row (even): 2,4,6,8,10,12,14,16 → pairs: [2,4], [6,8], [10,12], [14,16]
+  const topRowPairs = [[1, 3], [5, 7], [9, 11], [13, 15]];
+  const bottomRowPairs = [[2, 4], [6, 8], [10, 12], [14, 16]];
 
-  const renderRow = (allShots: number[], color: StoneColor) => {
+  const renderStone = (shotNumber: number, color: StoneColor) => {
+    // Only render if stone hasn't been played yet
+    if (shotNumber < currentShotNumber) {
+      return <div key={shotNumber} className="w-5 h-5" />;
+    }
+
+    const isCurrent = shotNumber === currentShotNumber;
+    const isFuture = shotNumber > currentShotNumber;
+
     return (
-      <div className="flex items-center justify-center relative">
-        {/* Fixed grid: 8 stones + 3 dividers between pairs */}
-        <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(8, 20px)' }}>
-          {allShots.map((shotNumber) => {
-            if (shotNumber === undefined) return null;
+      <div
+        key={shotNumber}
+        className={`
+          w-5 h-5 rounded-full transition-all duration-300
+          ${isCurrent && !isReview ? 'animate-pulse ring-3 ring-slate-900 scale-110' : ''}
+          ${isCurrent && isReview ? 'ring-3 ring-slate-900' : ''}
+          ${isFuture ? 'opacity-40' : ''}
+        `}
+        style={{
+          backgroundColor: STONE_COLORS[color],
+        }}
+      />
+    );
+  };
 
-            // Only render stones that haven't been played yet
-            if (shotNumber < currentShotNumber) {
-              return <div key={shotNumber} />;
-            }
+  const renderRow = (pairs: number[][], color: StoneColor) => {
+    return (
+      <div className="flex items-center gap-2">
+        {pairs.map((pair, pairIdx) => (
+          <div key={pairIdx} className="flex items-center gap-1">
+            {/* Pair of stones */}
+            <div className="flex gap-1">
+              {pair.map((shot) => renderStone(shot, color))}
+            </div>
 
-            const isCurrent = shotNumber === currentShotNumber;
-            const isFuture = shotNumber > currentShotNumber;
-
-            return (
-              <div
-                key={shotNumber}
-                className={`
-                  w-5 h-5 rounded-full transition-all duration-300 relative
-                  ${isCurrent && !isReview ? 'animate-pulse ring-3 ring-slate-900 scale-110' : ''}
-                  ${isCurrent && isReview ? 'ring-3 ring-slate-900' : ''}
-                  ${isFuture ? 'opacity-40' : ''}
-                `}
-                style={{
-                  backgroundColor: STONE_COLORS[color],
-                }}
-              />
-            );
-          })}
-        </div>
-
-        {/* Fixed vertical dividers at absolute positions */}
-        <div className="absolute top-0 bottom-0 flex items-center" style={{ left: '50px' }}>
-          <div className="w-px h-6 bg-slate-400" />
-        </div>
-        <div className="absolute top-0 bottom-0 flex items-center" style={{ left: '78px' }}>
-          <div className="w-px h-6 bg-slate-400" />
-        </div>
-        <div className="absolute top-0 bottom-0 flex items-center" style={{ left: '106px' }}>
-          <div className="w-px h-6 bg-slate-400" />
-        </div>
+            {/* Vertical divider after each pair except the last */}
+            {pairIdx < pairs.length - 1 && (
+              <div className="w-px h-6 bg-slate-400" />
+            )}
+          </div>
+        ))}
       </div>
     );
   };
 
   return (
-    <div className="flex flex-col items-center gap-3 py-2 px-4">
+    <div className="flex flex-col items-center gap-2 py-2 px-4">
       {/* Top row: team without hammer */}
-      <div>{renderRow(topRowShots, colorFirst)}</div>
+      <div>{renderRow(topRowPairs, colorFirst)}</div>
 
-      {/* Horizontal divider line */}
-      <div className="h-px bg-slate-400 w-full" />
+      {/* Horizontal divider */}
+      <div className="h-px w-48 bg-slate-400" />
 
       {/* Bottom row: team with hammer */}
-      <div>{renderRow(bottomRowShots, colorSecond)}</div>
+      <div>{renderRow(bottomRowPairs, colorSecond)}</div>
     </div>
   );
 }
