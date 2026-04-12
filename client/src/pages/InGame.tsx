@@ -349,7 +349,6 @@ export default function InGame() {
         {/* Stone tracker */}
         <section className="flex justify-center">
           <StoneTracker
-            totalShots={SHOTS_PER_END}
             currentShotNumber={displayShotNumber}
             colorFirst={hammerThisEnd === 'home' ? game.color_away : game.color_home}
             colorSecond={hammerThisEnd === 'home' ? game.color_home : game.color_away}
