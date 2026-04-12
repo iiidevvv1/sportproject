@@ -288,65 +288,59 @@ export default function Stats() {
             </section>
           </>
         ) : (
-          /* My team tab - compact player cards, 4 per screen */
-          <div className="space-y-2">
+          /* My team tab - responsive player cards */
+          <div className="space-y-1">
             {home.players.map((player, idx) => (
               <div
                 key={player.position}
-                className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden"
+                className="bg-white rounded-lg shadow-sm border border-slate-100 overflow-hidden"
               >
-                {/* Header row */}
-                <div className="px-4 py-2 border-b border-slate-100 flex justify-between items-center">
-                  <h3 className="font-headline text-xl font-bold text-[#0d1c2e]">
+                {/* Header row - responsive font sizes */}
+                <div className="px-3 md:px-4 py-1 md:py-2 border-b border-slate-100 flex justify-between items-center">
+                  <h3 className="font-headline text-sm md:text-xl font-bold text-[#0d1c2e]">
                     {POSITION_LABELS_FULL[idx]}
                   </h3>
-                  <div className="text-right text-lg font-bold text-slate-600">
+                  <div className="text-right text-xs md:text-lg font-bold text-slate-600">
                     {player.shotCount} / <span className="text-primary font-black">{player.avg}%</span>
                   </div>
                 </div>
 
-                {/* Table grid: label | count | % || label | count | % */}
-                <div className="grid grid-cols-2 divide-x-2 divide-slate-200">
+                {/* Table grid - responsive layout */}
+                <div className="grid grid-cols-2 divide-x divide-slate-200">
                   {/* Draw column */}
                   <div className="divide-y divide-slate-50">
-                    <div className="grid grid-cols-[1fr_2.5rem_2rem_3.5rem] items-center px-4 py-1.5">
-                      <span className="text-base font-bold text-slate-700">Draw</span>
-                      <span className="text-base text-slate-500 text-right tabular-nums">{player.drawCount}</span>
-                      <span></span>
-                      <span className="text-base font-bold text-slate-700 text-right tabular-nums">{player.drawAvg}%</span>
+                    {/* Draw header */}
+                    <div className="grid grid-cols-2 items-center gap-1 px-2 md:px-4 py-1 md:py-1.5 bg-slate-50/50">
+                      <span className="text-xs md:text-base font-bold text-slate-700">Draw</span>
+                      <span className="text-xs md:text-base font-bold text-slate-700 text-right tabular-nums">{player.drawAvg}%</span>
                     </div>
-                    <div className="grid grid-cols-[1fr_2.5rem_2rem_3.5rem] items-center px-4 py-1.5">
-                      <span className="text-base text-slate-500">In</span>
-                      <span className="text-base text-slate-400 text-right tabular-nums">{player.drawInCount}</span>
-                      <span></span>
-                      <span className="text-base text-slate-600 text-right tabular-nums">{player.inturnDrawAvg}%</span>
+                    {/* In row */}
+                    <div className="grid grid-cols-2 items-center gap-1 px-2 md:px-4 py-0.5 md:py-1">
+                      <span className="text-xs md:text-sm text-slate-600">In <span className="text-slate-400 font-normal">{player.drawInCount}</span></span>
+                      <span className="text-xs md:text-sm text-slate-600 text-right tabular-nums">{player.inturnDrawAvg}%</span>
                     </div>
-                    <div className="grid grid-cols-[1fr_2.5rem_2rem_3.5rem] items-center px-4 py-1.5">
-                      <span className="text-base text-slate-500">Out</span>
-                      <span className="text-base text-slate-400 text-right tabular-nums">{player.drawOutCount}</span>
-                      <span></span>
-                      <span className="text-base text-slate-600 text-right tabular-nums">{player.outturnDrawAvg}%</span>
+                    {/* Out row */}
+                    <div className="grid grid-cols-2 items-center gap-1 px-2 md:px-4 py-0.5 md:py-1">
+                      <span className="text-xs md:text-sm text-slate-600">Out <span className="text-slate-400 font-normal">{player.drawOutCount}</span></span>
+                      <span className="text-xs md:text-sm text-slate-600 text-right tabular-nums">{player.outturnDrawAvg}%</span>
                     </div>
                   </div>
                   {/* Take column */}
                   <div className="divide-y divide-slate-50">
-                    <div className="grid grid-cols-[1fr_2.5rem_2rem_3.5rem] items-center px-4 py-1.5">
-                      <span className="text-base font-bold text-slate-700">Take</span>
-                      <span className="text-base text-slate-500 text-right tabular-nums">{player.takeoutCount}</span>
-                      <span></span>
-                      <span className="text-base font-bold text-slate-700 text-right tabular-nums">{player.takeoutAvg}%</span>
+                    {/* Take header */}
+                    <div className="grid grid-cols-2 items-center gap-1 px-2 md:px-4 py-1 md:py-1.5 bg-slate-50/50">
+                      <span className="text-xs md:text-base font-bold text-slate-700">Take</span>
+                      <span className="text-xs md:text-base font-bold text-slate-700 text-right tabular-nums">{player.takeoutAvg}%</span>
                     </div>
-                    <div className="grid grid-cols-[1fr_2.5rem_2rem_3.5rem] items-center px-4 py-1.5">
-                      <span className="text-base text-slate-500">In</span>
-                      <span className="text-base text-slate-400 text-right tabular-nums">{player.takeoutInCount}</span>
-                      <span></span>
-                      <span className="text-base text-slate-600 text-right tabular-nums">{player.inturnTakeoutAvg}%</span>
+                    {/* In row */}
+                    <div className="grid grid-cols-2 items-center gap-1 px-2 md:px-4 py-0.5 md:py-1">
+                      <span className="text-xs md:text-sm text-slate-600">In <span className="text-slate-400 font-normal">{player.takeoutInCount}</span></span>
+                      <span className="text-xs md:text-sm text-slate-600 text-right tabular-nums">{player.inturnTakeoutAvg}%</span>
                     </div>
-                    <div className="grid grid-cols-[1fr_2.5rem_2rem_3.5rem] items-center px-4 py-1.5">
-                      <span className="text-base text-slate-500">Out</span>
-                      <span className="text-base text-slate-400 text-right tabular-nums">{player.takeoutOutCount}</span>
-                      <span></span>
-                      <span className="text-base text-slate-600 text-right tabular-nums">{player.outturnTakeoutAvg}%</span>
+                    {/* Out row */}
+                    <div className="grid grid-cols-2 items-center gap-1 px-2 md:px-4 py-0.5 md:py-1">
+                      <span className="text-xs md:text-sm text-slate-600">Out <span className="text-slate-400 font-normal">{player.takeoutOutCount}</span></span>
+                      <span className="text-xs md:text-sm text-slate-600 text-right tabular-nums">{player.outturnTakeoutAvg}%</span>
                     </div>
                   </div>
                 </div>
