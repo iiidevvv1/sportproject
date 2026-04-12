@@ -30,31 +30,39 @@ export default function StoneTracker({
     }
 
     return (
-      <div className="flex items-center gap-6">
+      <div className="flex items-center justify-center">
         {pairs.map((pair, pairIdx) => (
-          <div key={pairIdx} className="flex items-center gap-1">
-            {pair.map((shotNumber) => {
-              if (shotNumber === undefined) return null;
-              const isCurrent = shotNumber === currentShotNumber;
-              const isCompleted = shotNumber < currentShotNumber;
-              const isFuture = shotNumber > currentShotNumber;
+          <div key={pairIdx} className="flex items-center">
+            {/* Pair of stones */}
+            <div className="flex items-center gap-1">
+              {pair.map((shotNumber) => {
+                if (shotNumber === undefined) return null;
+                const isCurrent = shotNumber === currentShotNumber;
+                const isCompleted = shotNumber < currentShotNumber;
+                const isFuture = shotNumber > currentShotNumber;
 
-              return (
-                <div
-                  key={shotNumber}
-                  className={`
-                    w-5 h-5 rounded-full transition-all duration-300
-                    ${isCurrent && !isReview ? 'animate-pulse ring-3 ring-slate-900 scale-110' : ''}
-                    ${isCurrent && isReview ? 'ring-3 ring-slate-900' : ''}
-                    ${isFuture ? 'opacity-40' : ''}
-                    ${isReview && isCompleted ? 'opacity-60' : ''}
-                  `}
-                  style={{
-                    backgroundColor: STONE_COLORS[color],
-                  }}
-                />
-              );
-            })}
+                return (
+                  <div
+                    key={shotNumber}
+                    className={`
+                      w-5 h-5 rounded-full transition-all duration-300 relative z-10
+                      ${isCurrent && !isReview ? 'animate-pulse ring-3 ring-slate-900 scale-110' : ''}
+                      ${isCurrent && isReview ? 'ring-3 ring-slate-900' : ''}
+                      ${isFuture ? 'opacity-40' : ''}
+                      ${isReview && isCompleted ? 'opacity-60' : ''}
+                    `}
+                    style={{
+                      backgroundColor: STONE_COLORS[color],
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Vertical divider after pairs 1, 2, 3 (not after pair 4) */}
+            {pairIdx < 3 && (
+              <div className="w-px h-6 bg-slate-400 mx-3" />
+            )}
           </div>
         ))}
       </div>
@@ -67,7 +75,7 @@ export default function StoneTracker({
       <div>{renderRow(topRowShots, colorFirst)}</div>
 
       {/* Horizontal divider line */}
-      <div className="h-px bg-slate-400" style={{ width: 'calc(4 * 20px + 3 * 4px + 3 * 24px)' }} />
+      <div className="h-px bg-slate-400 w-full" />
 
       {/* Bottom row: team with hammer */}
       <div>{renderRow(bottomRowShots, colorSecond)}</div>
