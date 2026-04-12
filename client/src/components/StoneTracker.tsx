@@ -37,8 +37,11 @@ export default function StoneTracker({
             <div className="flex items-center gap-1">
               {pair.map((shotNumber) => {
                 if (shotNumber === undefined) return null;
+                
+                // Only render stones that haven't been played yet
+                if (shotNumber < currentShotNumber) return null;
+                
                 const isCurrent = shotNumber === currentShotNumber;
-                const isCompleted = shotNumber < currentShotNumber;
                 const isFuture = shotNumber > currentShotNumber;
 
                 return (
@@ -49,7 +52,6 @@ export default function StoneTracker({
                       ${isCurrent && !isReview ? 'animate-pulse ring-3 ring-slate-900 scale-110' : ''}
                       ${isCurrent && isReview ? 'ring-3 ring-slate-900' : ''}
                       ${isFuture ? 'opacity-40' : ''}
-                      ${isReview && isCompleted ? 'opacity-60' : ''}
                     `}
                     style={{
                       backgroundColor: STONE_COLORS[color],
