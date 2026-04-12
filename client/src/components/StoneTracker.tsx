@@ -7,7 +7,7 @@ interface StoneTrackerProps {
   colorFirst: StoneColor;
   /** Color of the team WITH hammer (bottom row, even shots) */
   colorSecond: StoneColor;
-  /** Whether we're in review mode (show all evaluated stones, highlight current) */
+  /** Whether we're in review mode (highlight current stone) */
   isReview?: boolean;
 }
 
@@ -22,58 +22,67 @@ export default function StoneTracker({
   const topRowShots = [1, 3, 5, 7, 9, 11, 13, 15];
   const bottomRowShots = [2, 4, 6, 8, 10, 12, 14, 16];
 
-  const renderRow = (shots: number[], color: StoneColor) => {
-    // Filter: only show stones from currentShotNumber onwards (except in review mode)
-    const visibleShots = isReview
-      ? shots // Show all in review mode
-      : shots.filter((s) => s >= currentShotNumber); // Show only current and future
+  // Always show only stones from currentShotNumber onwards (filtered from DOM)
+  const renderRow = (allShots: number[], color: StoneColor) => {
+    // Filter: only render stones >= currentShotNumber
+    const visibleShots = allShots.filter((s) => s >= currentShotNumber);
 
-    // Group into pairs: [shot1, shot2], [shot3, shot4], etc.
-    const pairs = [];
-    for (let i = 0; i < visibleShots.length; i += 2) {
-      pairs.push([visibleShots[i], visibleShots[i + 1]].filter((s) => s !== undefined));
+    // Map each visible shot to fixed grid position
+    // Position 0 = shot 1 or 2
+    // Position 1 = shot 3 or 4
+    // Position 2 = shot 5 or 6
+    // etc.
+    const gridPositions = visibleShots.map((shotNumber) => {
+      const isOdd = shotNumber % 2 === 1;
+      const position = isOdd ? (shotNumber - 1) / 2 : (shotNumber - 2) / 2;
+      return { shotNumber, position };
+    });
+
+    // Render 8 fixed grid cells (one for each position in this row)
+    const cells = [];
+    for (let pos = 0; pos < 8; pos++) {
+      const stone = gridPositions.find((s) => s.position === pos);
+      const shotNumber = stone?.shotNumber;
+      const isCurrent = shotNumber === currentShotNumber;
+      const isCompleted = shotNumber !== undefined && shotNumber < currentShotNumber;
+
+      cells.push(
+        <div key={pos} className="relative flex items-center justify-center w-5 h-5">
+          {shotNumber !== undefined && (
+            <div
+              className={`
+                w-5 h-5 rounded-full transition-all duration-300
+                ${isCurrent ? 'animate-pulse ring-3 ring-slate-900 scale-110' : ''}
+                ${isReview && isCompleted ? 'opacity-60' : 'opacity-100'}
+              `}
+              style={{
+                backgroundColor: STONE_COLORS[color],
+              }}
+            />
+          )}
+          {/* Vertical divider after positions 1, 3, 5 (between pairs) */}
+          {(pos === 1 || pos === 3 || pos === 5) && (
+            <div className="absolute -right-3 w-px h-6 bg-slate-400" />
+          )}
+        </div>,
+      );
     }
 
-    return (
-      <div className="flex items-center gap-6">
-        {pairs.map((pair, pairIdx) => (
-          <div key={pairIdx} className="flex items-center gap-1.5">
-            {pair.map((shotNumber) => {
-              const isCurrent = shotNumber === currentShotNumber;
-              const isCompleted = shotNumber < currentShotNumber;
-
-              return (
-                <div
-                  key={shotNumber}
-                  className={`
-                    w-5 h-5 rounded-full transition-all duration-300
-                    ${isCurrent ? 'animate-pulse ring-3 ring-slate-900 ring-offset-0 scale-110' : ''}
-                    ${isReview && isCompleted ? 'opacity-60' : 'opacity-100'}
-                  `}
-                  style={{
-                    backgroundColor: STONE_COLORS[color],
-                  }}
-                />
-              );
-            })}
-          </div>
-        ))}
-      </div>
-    );
+    return cells;
   };
 
   return (
-    <div className="flex flex-col items-center gap-3 py-2 px-4 w-full">
+    <div className="flex flex-col items-center gap-3 py-2 px-4">
       {/* Top row: team without hammer */}
-      <div className="w-full flex justify-center">
+      <div className="flex items-center gap-1">
         {renderRow(topRowShots, colorFirst)}
       </div>
 
-      {/* Horizontal divider line */}
-      <div className="w-80 h-px bg-slate-400" />
+      {/* Horizontal divider line — fixed width for 8 stones */}
+      <div className="h-px bg-slate-400" style={{ width: 'calc(8 * 20px + 7 * 4px)' }} />
 
       {/* Bottom row: team with hammer */}
-      <div className="w-full flex justify-center">
+      <div className="flex items-center gap-1">
         {renderRow(bottomRowShots, colorSecond)}
       </div>
     </div>
