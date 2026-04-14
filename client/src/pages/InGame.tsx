@@ -6,7 +6,8 @@ import ScoreBoard from '../components/ScoreBoard';
 import ShotInput from '../components/ShotInput';
 import EndResult from '../components/EndResult';
 import StoneTracker from '../components/StoneTracker';
-import { useGame, useFinishGame } from '../hooks/useGame';
+import EarlyFinishDialog from '../components/EarlyFinishDialog';
+import { useGame, useFinishGame, useUpdateEnd } from '../hooks/useGame';
 import { useCreateShot, useUpdateShot, useCreateEnd } from '../hooks/useShots';
 import { getShotInfo, getHammerForEnd } from '../lib/shotOrder';
 import { STONE_COLORS, type ShotType, type TurnType, type ScoreValue, type TeamSide, type Shot } from '../types';
@@ -27,6 +28,7 @@ export default function InGame() {
   const updateShot = useUpdateShot(gameId);
   const createEnd = useCreateEnd(gameId);
   const finishGame = useFinishGame();
+  const updateEnd = useUpdateEnd(gameId);
 
   // viewIndex: which shot position we're viewing (0-based index into all shots)
   // null = "new shot" position (past the last recorded shot)
@@ -41,12 +43,16 @@ export default function InGame() {
   const [showTieDialog, setShowTieDialog] = useState(false);
   const [showEndOfGameDialog, setShowEndOfGameDialog] = useState(false);
   const [showJumpDialog, setShowJumpDialog] = useState(false);
+  const [showEarlyFinishDialog, setShowEarlyFinishDialog] = useState(false);
+  const [editingEndNumber, setEditingEndNumber] = useState<number | null>(null);
   // Track if current viewed shot was edited
   const [isDirty, setIsDirty] = useState(false);
   // Track if any shot was edited in this session (for badge)
   const [hasEdited, setHasEdited] = useState(false);
   // Track if first shot has been loaded in resume mode
   const [resumeLoaded, setResumeLoaded] = useState(false);
+  // Track if we're in early finish mode (to handle end result differently)
+  const [isEarlyFinishing, setIsEarlyFinishing] = useState(false);
 
   // All shots sorted by end then shot number
   // ALL hooks MUST be before early return to satisfy Rules of Hooks
@@ -241,6 +247,24 @@ export default function InGame() {
     const scoreHome = result.scorer === 'home' ? result.stones : 0;
     const scoreAway = result.scorer === 'away' ? result.stones : 0;
 
+    // If editing existing end
+    if (editingEndNumber !== null) {
+      updateEnd.mutate(
+        {
+          endNumber: editingEndNumber,
+          score_home: scoreHome,
+          score_away: scoreAway,
+        },
+        {
+          onSuccess: () => {
+            setShowEndResult(false);
+            setEditingEndNumber(null);
+          },
+        },
+      );
+      return;
+    }
+
     createEnd.mutate(
       {
         number: currentEnd,
@@ -249,8 +273,29 @@ export default function InGame() {
         hammer: hammerThisEnd,
       },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
           setShowEndResult(false);
+
+          // If early finishing, create remaining ends and finish game
+          if (isEarlyFinishing) {
+            try {
+              for (let i = currentEnd + 1; i <= game.max_ends; i++) {
+                await fetch(`/api/games/${gameId}/ends`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ number: i }),
+                });
+              }
+              finishGame.mutate(gameId, {
+                onSuccess: () => void navigate('/stats'),
+              });
+              setIsEarlyFinishing(false);
+            } catch (error) {
+              console.error('Failed to finish game:', error);
+              setIsEarlyFinishing(false);
+            }
+            return;
+          }
 
           if (currentEnd >= game.max_ends) {
             const totalHome = game.ends.reduce((acc, e) => acc + e.score_home, 0) + scoreHome;
@@ -281,10 +326,33 @@ export default function InGame() {
   };
 
   const handleFinish = () => {
-    if (!confirm('Завершить игру досрочно?')) return;
-    finishGame.mutate(gameId, {
-      onSuccess: () => void navigate('/'),
-    });
+    setShowEarlyFinishDialog(true);
+  };
+
+  const handleEarlyFinishWithResult = () => {
+    setShowEarlyFinishDialog(false);
+    setIsEarlyFinishing(true);
+    setShowEndResult(true);
+  };
+
+  const handleEarlyFinishSkipResult = async () => {
+    setShowEarlyFinishDialog(false);
+
+    try {
+      for (let i = currentEnd; i <= game.max_ends; i++) {
+        await fetch(`/api/games/${gameId}/ends`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ number: i }),
+        });
+      }
+
+      finishGame.mutate(gameId, {
+        onSuccess: () => void navigate('/stats'),
+      });
+    } catch (error) {
+      console.error('Failed to finish game:', error);
+    }
   };
 
   // Badge text
@@ -384,6 +452,19 @@ export default function InGame() {
             </button>
           )}
 
+          {/* Edit end result button — only in review mode */}
+          {isViewingExisting && (
+            <button
+              onClick={() => {
+                setEditingEndNumber(currentEnd);
+                setShowEndResult(true);
+              }}
+              className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border border-blue-200 text-blue-500 hover:bg-blue-50 font-headline font-bold text-sm transition-colors"
+            >
+              Редактировать результат энда
+            </button>
+          )}
+
           {/* Jump to shot button — only in review mode */}
           {isViewingExisting && allShots.length > 1 && (
             <button
@@ -440,8 +521,18 @@ export default function InGame() {
         <EndResult
           teamHome={game.team_home}
           teamAway={game.team_away}
-          endNumber={currentEnd}
+          endNumber={editingEndNumber || currentEnd}
           onSubmit={handleEndResult}
+        />
+      )}
+
+      {/* Early finish dialog */}
+      {showEarlyFinishDialog && (
+        <EarlyFinishDialog
+          currentEnd={currentEnd}
+          maxEnds={game.max_ends}
+          onInputResult={handleEarlyFinishWithResult}
+          onSkipResult={handleEarlyFinishSkipResult}
         />
       )}
 
