@@ -30,6 +30,7 @@ export interface End {
   score_home: number;
   score_away: number;
   hammer: TeamSide;
+  status?: 'played' | 'placeholder';
 }
 
 export interface Shot {

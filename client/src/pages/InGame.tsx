@@ -6,6 +6,7 @@ import ScoreBoard from '../components/ScoreBoard';
 import ShotInput from '../components/ShotInput';
 import EndResult from '../components/EndResult';
 import StoneTracker from '../components/StoneTracker';
+import { EarlyFinishDialog } from '../components/EarlyFinishDialog';
 import { useGame, useFinishGame } from '../hooks/useGame';
 import { useCreateShot, useUpdateShot, useCreateEnd } from '../hooks/useShots';
 import { getShotInfo, getHammerForEnd } from '../lib/shotOrder';
@@ -41,6 +42,8 @@ export default function InGame() {
   const [showTieDialog, setShowTieDialog] = useState(false);
   const [showEndOfGameDialog, setShowEndOfGameDialog] = useState(false);
   const [showJumpDialog, setShowJumpDialog] = useState(false);
+  const [showEarlyFinishDialog, setShowEarlyFinishDialog] = useState(false);
+  const [isEarlyFinishing, setIsEarlyFinishing] = useState(false);
   // Track if current viewed shot was edited
   const [isDirty, setIsDirty] = useState(false);
   // Track if any shot was edited in this session (for badge)
@@ -252,6 +255,12 @@ export default function InGame() {
         onSuccess: () => {
           setShowEndResult(false);
 
+          // If this was early finish with result input, finish game now
+          if (isEarlyFinishing) {
+            handleFinishGameWithEarlyEnd(false);
+            return;
+          }
+
           if (currentEnd >= game.max_ends) {
             const totalHome = game.ends.reduce((acc, e) => acc + e.score_home, 0) + scoreHome;
             const totalAway = game.ends.reduce((acc, e) => acc + e.score_away, 0) + scoreAway;
@@ -281,10 +290,39 @@ export default function InGame() {
   };
 
   const handleFinish = () => {
-    if (!confirm('Завершить игру досрочно?')) return;
-    finishGame.mutate(gameId, {
-      onSuccess: () => void navigate('/'),
-    });
+    setShowEarlyFinishDialog(true);
+  };
+
+  const handleEarlyFinish = (skipResult: boolean) => {
+    if (skipResult) {
+      // Skip result: don't record current end, just create placeholders and finish
+      setShowEarlyFinishDialog(false);
+      setIsEarlyFinishing(true);
+      handleFinishGameWithEarlyEnd(true);
+    } else {
+      // Record current end result via EndResult modal
+      setShowEarlyFinishDialog(false);
+      setIsEarlyFinishing(true);
+      setShowEndResult(true);
+    }
+  };
+
+  const handleFinishGameWithEarlyEnd = async (skipResult: boolean) => {
+    try {
+      const { earlyFinishGame } = await import('../api');
+      const currentEnd = completedEnds + 1;
+      
+      await earlyFinishGame(gameId, {
+        endNumber: currentEnd,
+        skipResult,
+      });
+
+      navigate(`/games/${gameId}/stats`);
+    } catch (error) {
+      console.error('Error in early finish:', error);
+      alert('Ошибка при завершении игры');
+      setIsEarlyFinishing(false);
+    }
   };
 
   // Badge text
@@ -483,6 +521,13 @@ export default function InGame() {
           onClose={() => setShowJumpDialog(false)}
         />
       )}
+
+      {/* Early finish dialog */}
+      <EarlyFinishDialog
+        open={showEarlyFinishDialog}
+        onOpenChange={setShowEarlyFinishDialog}
+        onConfirm={handleEarlyFinish}
+      />
 
       {/* Tie dialog */}
       {showTieDialog && (

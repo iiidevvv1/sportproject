@@ -155,13 +155,18 @@ export default function Stats() {
                       </td>
                       {Array.from({ length: totalEnds }).map((_, i) => {
                         const end = game.ends.find((e) => e.number === i + 1);
-                        const s = end ? end.score_home : 0;
+                        if (!end) return <td key={i} className="px-1 py-4 text-center text-sm text-slate-400">-</td>;
+                        
+                        const isPlaceholder = (end as any).status === 'placeholder';
+                        const display = isPlaceholder ? 'X' : end.score_home;
+                        const s = end.score_home;
+                        
                         return (
                           <td
                             key={i}
-                            className={`px-1 py-4 text-center text-sm ${s > 0 ? 'text-primary font-bold' : 'text-slate-400'}`}
+                            className={`px-1 py-4 text-center text-sm ${s > 0 ? 'text-primary font-bold' : isPlaceholder ? 'text-slate-300' : 'text-slate-400'}`}
                           >
-                            {s}
+                            {display}
                           </td>
                         );
                       })}
@@ -182,13 +187,18 @@ export default function Stats() {
                       </td>
                       {Array.from({ length: totalEnds }).map((_, i) => {
                         const end = game.ends.find((e) => e.number === i + 1);
-                        const s = end ? end.score_away : 0;
+                        if (!end) return <td key={i} className="px-1 py-4 text-center text-sm text-slate-400">-</td>;
+                        
+                        const isPlaceholder = (end as any).status === 'placeholder';
+                        const display = isPlaceholder ? 'X' : end.score_away;
+                        const s = end.score_away;
+                        
                         return (
                           <td
                             key={i}
-                            className={`px-1 py-4 text-center text-sm ${s > 0 ? 'text-primary font-bold' : 'text-slate-400'}`}
+                            className={`px-1 py-4 text-center text-sm ${s > 0 ? 'text-primary font-bold' : isPlaceholder ? 'text-slate-300' : 'text-slate-400'}`}
                           >
-                            {s}
+                            {display}
                           </td>
                         );
                       })}

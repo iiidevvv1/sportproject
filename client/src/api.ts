@@ -124,6 +124,25 @@ export function createEnd(
   });
 }
 
+// Early finish
+export function earlyFinishGame(
+  gameId: number,
+  data: {
+    endNumber: number;
+    scoreHome?: number;
+    scoreAway?: number;
+    skipResult: boolean;
+  },
+): Promise<{ success: boolean; game_id: number; ends_created: number }> {
+  return fetchJson<{ success: boolean; game_id: number; ends_created: number }>(
+    `/games/${gameId}/early-finish`,
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    },
+  );
+}
+
 // Stats
 export function getGameStats(id: number): Promise<GameStats> {
   return fetchJson<GameStats>(`/games/${id}/stats`);
