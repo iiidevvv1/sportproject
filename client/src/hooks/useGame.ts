@@ -75,3 +75,30 @@ export function useDeleteGame() {
     },
   });
 }
+
+export function useUpdateEnd(gameId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      endNumber,
+      score_home,
+      score_away,
+    }: {
+      endNumber: number;
+      score_home: number;
+      score_away: number;
+    }) =>
+      fetch(`/api/games/${gameId}/ends/${endNumber}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ score_home, score_away }),
+      }).then((res) => {
+        if (!res.ok) throw new Error('Failed to update end');
+        return res.json();
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['game', gameId] });
+    },
+  });
+}
