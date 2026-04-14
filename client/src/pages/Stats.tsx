@@ -156,12 +156,13 @@ export default function Stats() {
                       {Array.from({ length: totalEnds }).map((_, i) => {
                         const end = game.ends.find((e) => e.number === i + 1);
                         const s = end ? end.score_home : 0;
+                        const isUnplayed = end && end.score_home === 0 && end.score_away === 0;
                         return (
                           <td
                             key={i}
                             className={`px-1 py-4 text-center text-sm ${s > 0 ? 'text-primary font-bold' : 'text-slate-400'}`}
                           >
-                            {s}
+                            {isUnplayed ? 'Х' : s}
                           </td>
                         );
                       })}
@@ -183,12 +184,13 @@ export default function Stats() {
                       {Array.from({ length: totalEnds }).map((_, i) => {
                         const end = game.ends.find((e) => e.number === i + 1);
                         const s = end ? end.score_away : 0;
+                        const isUnplayed = end && end.score_home === 0 && end.score_away === 0;
                         return (
                           <td
                             key={i}
                             className={`px-1 py-4 text-center text-sm ${s > 0 ? 'text-primary font-bold' : 'text-slate-400'}`}
                           >
-                            {s}
+                            {isUnplayed ? 'Х' : s}
                           </td>
                         );
                       })}
