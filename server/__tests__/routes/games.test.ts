@@ -129,4 +129,103 @@ describe('Games API', () => {
       expect(res.body.status).toBe('finished');
     });
   });
+
+  describe('POST /api/games/:id/early-finish', () => {
+    it('creates placeholder ends when skipResult=true', async () => {
+      const gameRes = await request.post('/api/games').send({
+        team_home: 'A', team_away: 'B',
+        color_home: 'red', color_away: 'yellow',
+        hammer_first_end: 'home',
+        max_ends: 10,
+      });
+      const gameId = (gameRes.body as GameRow).id;
+
+      // Create ends 1-7
+      for (let i = 1; i <= 7; i++) {
+        await request.post(`/api/games/${gameId}/ends`).send({
+          number: i,
+          score_home: i % 2,
+          score_away: 0,
+          hammer: 'home',
+        });
+      }
+
+      const res = await request.post(`/api/games/${gameId}/early-finish`).send({
+        endNumber: 7,
+        skipResult: true,
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.ends_created).toBe(3); // 8, 9, 10
+
+      // Verify game is finished
+      const gameCheck = await request.get(`/api/games/${gameId}`);
+      expect(gameCheck.body.status).toBe('finished');
+
+      // Verify placeholder ends exist
+      const placeholders = (gameCheck.body as GameWithDetails).ends.filter((e) => e.status === 'placeholder');
+      expect(placeholders.length).toBe(3);
+      expect(placeholders.every((e) => e.score_home === 0 && e.score_away === 0)).toBe(true);
+    });
+
+    it('creates end with score and placeholders when skipResult=false', async () => {
+      const gameRes = await request.post('/api/games').send({
+        team_home: 'A', team_away: 'B',
+        color_home: 'red', color_away: 'yellow',
+        hammer_first_end: 'home',
+        max_ends: 10,
+      });
+      const gameId = (gameRes.body as GameRow).id;
+
+      for (let i = 1; i <= 7; i++) {
+        await request.post(`/api/games/${gameId}/ends`).send({
+          number: i,
+          score_home: i % 2,
+          score_away: 0,
+          hammer: 'home',
+        });
+      }
+
+      const res = await request.post(`/api/games/${gameId}/early-finish`).send({
+        endNumber: 8,
+        scoreHome: 3,
+        scoreAway: 1,
+        skipResult: false,
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.ends_created).toBe(2); // 9, 10
+
+      // Verify end 8 exists with correct score
+      const gameCheck = await request.get(`/api/games/${gameId}`);
+      const end8 = (gameCheck.body as GameWithDetails).ends.find((e) => e.number === 8);
+      expect(end8?.score_home).toBe(3);
+      expect(end8?.score_away).toBe(1);
+      expect(end8?.status).toBe('played');
+    });
+
+    it('returns 404 for non-existent game', async () => {
+      const res = await request.post('/api/games/999/early-finish').send({
+        endNumber: 1,
+        skipResult: true,
+      });
+      expect(res.status).toBe(404);
+    });
+
+    it('returns 400 for missing endNumber', async () => {
+      const gameRes = await request.post('/api/games').send({
+        team_home: 'A', team_away: 'B',
+        color_home: 'red', color_away: 'yellow',
+        hammer_first_end: 'home',
+      });
+      const gameId = (gameRes.body as GameRow).id;
+
+      const res = await request.post(`/api/games/${gameId}/early-finish`).send({
+        skipResult: true,
+      });
+      expect(res.status).toBe(400);
+    });
+  });
 });

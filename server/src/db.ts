@@ -29,6 +29,7 @@ export function createDb(path: string): AppDatabase {
       score_home INTEGER NOT NULL DEFAULT 0,
       score_away INTEGER NOT NULL DEFAULT 0,
       hammer TEXT NOT NULL CHECK(hammer IN ('home', 'away')),
+      status TEXT NOT NULL DEFAULT 'played' CHECK(status IN ('played', 'placeholder')),
       UNIQUE(game_id, number)
     );
 
