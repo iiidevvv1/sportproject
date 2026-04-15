@@ -184,8 +184,9 @@ export function gamesRouter(ctx: AppContext): Router {
         ends_created: endsCount,
       });
     } catch (error) {
-      console.error('Error in early-finish:', error);
-      res.status(500).json({ error: 'Failed to finish game early' });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error in early-finish:', errorMessage);
+      res.status(500).json({ error: errorMessage });
     }
   });
 
