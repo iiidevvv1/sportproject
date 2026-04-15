@@ -1,30 +1,6 @@
 import Database from 'better-sqlite3';
-import fs from 'fs';
-import path from 'path';
 
 export type AppDatabase = Database.Database;
-
-function runMigrations(db: Database.Database): void {
-  const migrationsDir = path.join(__dirname, '..', 'migrations');
-  if (!fs.existsSync(migrationsDir)) {
-    return;
-  }
-
-  const migrationFiles = fs.readdirSync(migrationsDir)
-    .filter(f => f.endsWith('.sql'))
-    .sort();
-
-  for (const file of migrationFiles) {
-    const filePath = path.join(migrationsDir, file);
-    const sql = fs.readFileSync(filePath, 'utf-8');
-    try {
-      db.exec(sql);
-    } catch (error) {
-      // Migration already applied (table/column exists) - ignore
-      console.log(`Migration ${file} skipped (likely already applied)`);
-    }
-  }
-}
 
 export function createDb(path: string): AppDatabase {
   const db = new Database(path);
@@ -75,8 +51,16 @@ export function createDb(path: string): AppDatabase {
     CREATE INDEX IF NOT EXISTS idx_ends_game ON ends(game_id);
   `);
 
-  // Run migrations to handle schema updates
-  runMigrations(db);
+  // Add status column to existing ends tables if it doesn't exist
+  try {
+    db.exec(`ALTER TABLE ends ADD COLUMN status TEXT DEFAULT 'played' CHECK(status IN ('played', 'placeholder'))`);
+    console.log('Added status column to ends table');
+  } catch (error: any) {
+    // Column already exists, ignore
+    if (!error.message.includes('duplicate column name')) {
+      console.error('Failed to add status column:', error.message);
+    }
+  }
 
   return db;
 }
