@@ -244,6 +244,14 @@ export default function InGame() {
     const scoreHome = result.scorer === 'home' ? result.stones : 0;
     const scoreAway = result.scorer === 'away' ? result.stones : 0;
 
+    // If this is early finish (user clicked "Завершить досрочно" then "Ввести результат")
+    if (isEarlyFinishing) {
+      setShowEndResult(false);
+      void handleFinishGameWithEarlyEnd(false, scoreHome, scoreAway);
+      return;
+    }
+
+    // Normal end result (during active game play)
     createEnd.mutate(
       {
         number: currentEnd,
@@ -254,12 +262,6 @@ export default function InGame() {
       {
         onSuccess: () => {
           setShowEndResult(false);
-
-          // If this was early finish with result input, finish game now
-          if (isEarlyFinishing) {
-            handleFinishGameWithEarlyEnd(false);
-            return;
-          }
 
           if (currentEnd >= game.max_ends) {
             const totalHome = game.ends.reduce((acc, e) => acc + e.score_home, 0) + scoreHome;
@@ -294,20 +296,19 @@ export default function InGame() {
   };
 
   const handleEarlyFinish = (skipResult: boolean) => {
+    setShowEarlyFinishDialog(false);
+    
     if (skipResult) {
       // Skip result: don't record current end, just create placeholders and finish
-      setShowEarlyFinishDialog(false);
-      setIsEarlyFinishing(true);
-      handleFinishGameWithEarlyEnd(true);
+      void handleFinishGameWithEarlyEnd(true);
     } else {
       // Record current end result via EndResult modal
-      setShowEarlyFinishDialog(false);
       setIsEarlyFinishing(true);
       setShowEndResult(true);
     }
   };
 
-  const handleFinishGameWithEarlyEnd = async (skipResult: boolean) => {
+  const handleFinishGameWithEarlyEnd = async (skipResult: boolean, scoreHome?: number, scoreAway?: number) => {
     try {
       const { earlyFinishGame } = await import('../api');
       const currentEnd = completedEnds + 1;
@@ -315,6 +316,8 @@ export default function InGame() {
       await earlyFinishGame(gameId, {
         endNumber: currentEnd,
         skipResult,
+        scoreHome: skipResult ? undefined : scoreHome,
+        scoreAway: skipResult ? undefined : scoreAway,
       });
 
       navigate(`/games/${gameId}/stats`);
