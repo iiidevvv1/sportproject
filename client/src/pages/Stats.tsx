@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { ChevronLeft, BarChart2, Users, Star, Shield, Sigma, Trash2, RotateCcw } from 'lucide-react';
 import Header from '../components/Header';
+import PlayerComparisonTable from '../components/PlayerComparisonTable';
+import PlayerStatsCard from '../components/PlayerStatsCard';
 import { useGame, useGameStats, useDeleteGame, useResumeGame } from '../hooks/useGame';
 import { toDisplayStats } from '../lib/statsCalc';
 import { STONE_COLORS } from '../types';
@@ -38,7 +40,6 @@ export default function Stats() {
   const awayColor = STONE_COLORS[game.color_away];
   const totalEnds = Math.max(game.max_ends, game.ends.length);
 
-  const POSITION_LABELS = ['ЛИД', '2-Й', '3-Й', 'СКИП'];
   const POSITION_LABELS_FULL = ['Лид', 'Второй', 'Третий', 'Скип'];
 
   return (
@@ -220,221 +221,34 @@ export default function Stats() {
                 <Users className="text-primary" size={20} />
                 Сравнение игроков
               </h3>
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse table-fixed min-w-[360px]">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100">
-                        <th className="px-2 py-4 text-[11px] font-bold uppercase tracking-tight text-slate-500 w-[16%]">Поз</th>
-                        <th className="px-1 py-4 text-[11px] font-bold uppercase tracking-tight text-center w-[14%] text-primary">
-                          <div className="flex items-center justify-center space-x-1">
-                            <Star size={16} style={{ color: homeColor, fill: homeColor }} />
-                            <span>%</span>
-                          </div>
-                        </th>
-                        <th className="px-1 py-4 text-[11px] font-bold uppercase tracking-tight text-center w-[14%] text-primary">D</th>
-                        <th className="px-1 py-4 text-[11px] font-bold uppercase tracking-tight text-center w-[14%] text-primary">T</th>
-                        <th className="px-1 py-4 text-[11px] font-bold uppercase tracking-tight text-center w-[14%] text-primary bg-primary/5">
-                          <div className="flex items-center justify-center space-x-1">
-                            <Shield size={16} style={{ color: awayColor, fill: awayColor }} />
-                            <span>%</span>
-                          </div>
-                        </th>
-                        <th className="px-1 py-4 text-[11px] font-bold uppercase tracking-tight text-center w-[14%] text-primary bg-primary/5">D</th>
-                        <th className="px-1 py-4 text-[11px] font-bold uppercase tracking-tight text-center w-[14%] text-primary bg-primary/5">T</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {home.players.map((player, idx) => {
-                        const awayPlayer = away.players[idx];
-                        return (
-                          <tr key={player.position} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="px-2 py-4 font-semibold text-xs border-r border-slate-50 text-slate-600">
-                              {POSITION_LABELS[idx]}
-                            </td>
-                            <td className="px-1 py-4 text-center font-headline font-bold text-sm text-slate-900">
-                              {player.avg}%
-                            </td>
-                            <td className="px-1 py-4 text-center text-xs text-slate-600">{player.drawAvg}%</td>
-                            <td className="px-1 py-4 text-center text-xs text-slate-600">{player.takeoutAvg}%</td>
-                            <td
-                              className="px-1 py-4 text-center font-headline font-bold text-sm text-slate-900"
-                              style={{ backgroundColor: `${awayColor}10` }}
-                            >
-                              {awayPlayer?.avg ?? 0}%
-                            </td>
-                            <td
-                              className="px-1 py-4 text-center text-xs text-slate-600"
-                              style={{ backgroundColor: `${awayColor}10` }}
-                            >
-                              {awayPlayer?.drawAvg ?? 0}%
-                            </td>
-                            <td
-                              className="px-1 py-4 text-center text-xs text-slate-600"
-                              style={{ backgroundColor: `${awayColor}10` }}
-                            >
-                              {awayPlayer?.takeoutAvg ?? 0}%
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr className="bg-primary/10 border-t border-primary/20 font-bold">
-                        <td className="px-2 py-4 text-center border-r border-primary/10">
-                          <Sigma size={20} strokeWidth={3} className="mx-auto text-primary" />
-                        </td>
-                        <td className="px-1 py-4 text-center text-sm text-slate-900">{home.avg}%</td>
-                        <td
-                          className="px-1 py-4 text-[10px] text-slate-500 italic text-center"
-                          colSpan={2}
-                        >
-                          Бросков: {home.shotCount}
-                        </td>
-                        <td className="px-1 py-4 text-center text-sm text-slate-900">{away.avg}%</td>
-                        <td
-                          className="px-1 py-4 text-[10px] text-slate-500 italic text-center"
-                          colSpan={2}
-                        >
-                          Бросков: {away.shotCount}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
+              <PlayerComparisonTable
+                home={home}
+                away={away}
+                homeColor={homeColor}
+                awayColor={awayColor}
+              />
             </section>
           </>
         ) : tab === 'home' ? (
-          /* Home team tab - responsive player cards */
+          /* Home team tab */
           <div className="space-y-1">
             {home.players.map((player, idx) => (
-              <div
+              <PlayerStatsCard
                 key={player.position}
-                className="bg-white rounded-lg shadow-sm border border-slate-100 overflow-hidden"
-              >
-                {/* Header row - responsive font sizes */}
-                <div className="px-3 md:px-4 py-1 md:py-2 border-b border-slate-100 flex justify-between items-center">
-                  <h3 className="font-headline text-sm md:text-xl font-bold text-[#0d1c2e]">
-                    {POSITION_LABELS_FULL[idx]}
-                  </h3>
-                  <div className="text-right text-xs md:text-lg font-bold text-slate-600">
-                    {player.shotCount} / <span className="text-primary font-black">{player.avg}%</span>
-                  </div>
-                </div>
-
-                {/* Table grid - responsive layout */}
-                <div className="grid grid-cols-2 divide-x divide-slate-200">
-                  {/* Draw column */}
-                  <div className="divide-y divide-slate-50">
-                    {/* Draw header with count and overall % */}
-                    <div className="grid grid-cols-[1fr_1.5rem_2rem] items-center gap-1 px-2 md:px-4 py-1 md:py-1.5 bg-slate-50/50">
-                      <span className="text-xs md:text-base font-bold text-slate-700">Draw</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-center tabular-nums font-medium">{player.drawCount}</span>
-                      <span className="text-xs md:text-base font-bold text-slate-700 text-right tabular-nums">{player.drawCount > 0 ? `${player.drawAvg}%` : '–'}</span>
-                    </div>
-                    {/* In row */}
-                    <div className="grid grid-cols-[1fr_1.5rem_2rem] items-center gap-1 px-2 md:px-4 py-0.5 md:py-1">
-                      <span className="text-xs md:text-sm text-slate-600">In</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-center tabular-nums font-medium">{player.drawInCount}</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-right tabular-nums">{player.drawInCount > 0 ? `${player.inturnDrawAvg}%` : '–'}</span>
-                    </div>
-                    {/* Out row */}
-                    <div className="grid grid-cols-[1fr_1.5rem_2rem] items-center gap-1 px-2 md:px-4 py-0.5 md:py-1">
-                      <span className="text-xs md:text-sm text-slate-600">Out</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-center tabular-nums font-medium">{player.drawOutCount}</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-right tabular-nums">{player.drawOutCount > 0 ? `${player.outturnDrawAvg}%` : '–'}</span>
-                    </div>
-                  </div>
-                  {/* Take column */}
-                  <div className="divide-y divide-slate-50">
-                    {/* Take header with count and overall % */}
-                    <div className="grid grid-cols-[1fr_1.5rem_2rem] items-center gap-1 px-2 md:px-4 py-1 md:py-1.5 bg-slate-50/50">
-                      <span className="text-xs md:text-base font-bold text-slate-700">Take</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-center tabular-nums font-medium">{player.takeoutCount}</span>
-                      <span className="text-xs md:text-base font-bold text-slate-700 text-right tabular-nums">{player.takeoutCount > 0 ? `${player.takeoutAvg}%` : '–'}</span>
-                    </div>
-                    {/* In row */}
-                    <div className="grid grid-cols-[1fr_1.5rem_2rem] items-center gap-1 px-2 md:px-4 py-0.5 md:py-1">
-                      <span className="text-xs md:text-sm text-slate-600">In</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-center tabular-nums font-medium">{player.takeoutInCount}</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-right tabular-nums">{player.takeoutInCount > 0 ? `${player.inturnTakeoutAvg}%` : '–'}</span>
-                    </div>
-                    {/* Out row */}
-                    <div className="grid grid-cols-[1fr_1.5rem_2rem] items-center gap-1 px-2 md:px-4 py-0.5 md:py-1">
-                      <span className="text-xs md:text-sm text-slate-600">Out</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-center tabular-nums font-medium">{player.takeoutOutCount}</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-right tabular-nums">{player.takeoutOutCount > 0 ? `${player.outturnTakeoutAvg}%` : '–'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                player={player}
+                positionLabel={POSITION_LABELS_FULL[idx] ?? `Игрок ${idx + 1}`}
+              />
             ))}
           </div>
         ) : (
-          /* Away team tab - responsive player cards */
+          /* Away team tab */
           <div className="space-y-1">
             {away.players.map((player, idx) => (
-              <div
+              <PlayerStatsCard
                 key={player.position}
-                className="bg-white rounded-lg shadow-sm border border-slate-100 overflow-hidden"
-              >
-                {/* Header row - responsive font sizes */}
-                <div className="px-3 md:px-4 py-1 md:py-2 border-b border-slate-100 flex justify-between items-center">
-                  <h3 className="font-headline text-sm md:text-xl font-bold text-[#0d1c2e]">
-                    {POSITION_LABELS_FULL[idx]}
-                  </h3>
-                  <div className="text-right text-xs md:text-lg font-bold text-slate-600">
-                    {player.shotCount} / <span className="text-primary font-black">{player.avg}%</span>
-                  </div>
-                </div>
-
-                {/* Table grid - responsive layout */}
-                <div className="grid grid-cols-2 divide-x divide-slate-200">
-                  {/* Draw column */}
-                  <div className="divide-y divide-slate-50">
-                    {/* Draw header with count and overall % */}
-                    <div className="grid grid-cols-[1fr_1.5rem_2rem] items-center gap-1 px-2 md:px-4 py-1 md:py-1.5 bg-slate-50/50">
-                      <span className="text-xs md:text-base font-bold text-slate-700">Draw</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-center tabular-nums font-medium">{player.drawCount}</span>
-                      <span className="text-xs md:text-base font-bold text-slate-700 text-right tabular-nums">{player.drawCount > 0 ? `${player.drawAvg}%` : '–'}</span>
-                    </div>
-                    {/* In row */}
-                    <div className="grid grid-cols-[1fr_1.5rem_2rem] items-center gap-1 px-2 md:px-4 py-0.5 md:py-1">
-                      <span className="text-xs md:text-sm text-slate-600">In</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-center tabular-nums font-medium">{player.drawInCount}</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-right tabular-nums">{player.drawInCount > 0 ? `${player.inturnDrawAvg}%` : '–'}</span>
-                    </div>
-                    {/* Out row */}
-                    <div className="grid grid-cols-[1fr_1.5rem_2rem] items-center gap-1 px-2 md:px-4 py-0.5 md:py-1">
-                      <span className="text-xs md:text-sm text-slate-600">Out</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-center tabular-nums font-medium">{player.drawOutCount}</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-right tabular-nums">{player.drawOutCount > 0 ? `${player.outturnDrawAvg}%` : '–'}</span>
-                    </div>
-                  </div>
-                  {/* Take column */}
-                  <div className="divide-y divide-slate-50">
-                    {/* Take header with count and overall % */}
-                    <div className="grid grid-cols-[1fr_1.5rem_2rem] items-center gap-1 px-2 md:px-4 py-1 md:py-1.5 bg-slate-50/50">
-                      <span className="text-xs md:text-base font-bold text-slate-700">Take</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-center tabular-nums font-medium">{player.takeoutCount}</span>
-                      <span className="text-xs md:text-base font-bold text-slate-700 text-right tabular-nums">{player.takeoutCount > 0 ? `${player.takeoutAvg}%` : '–'}</span>
-                    </div>
-                    {/* In row */}
-                    <div className="grid grid-cols-[1fr_1.5rem_2rem] items-center gap-1 px-2 md:px-4 py-0.5 md:py-1">
-                      <span className="text-xs md:text-sm text-slate-600">In</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-center tabular-nums font-medium">{player.takeoutInCount}</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-right tabular-nums">{player.takeoutInCount > 0 ? `${player.inturnTakeoutAvg}%` : '–'}</span>
-                    </div>
-                    {/* Out row */}
-                    <div className="grid grid-cols-[1fr_1.5rem_2rem] items-center gap-1 px-2 md:px-4 py-0.5 md:py-1">
-                      <span className="text-xs md:text-sm text-slate-600">Out</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-center tabular-nums font-medium">{player.takeoutOutCount}</span>
-                      <span className="text-xs md:text-sm text-slate-600 text-right tabular-nums">{player.takeoutOutCount > 0 ? `${player.outturnTakeoutAvg}%` : '–'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                player={player}
+                positionLabel={POSITION_LABELS_FULL[idx] ?? `Игрок ${idx + 1}`}
+              />
             ))}
           </div>
         )}

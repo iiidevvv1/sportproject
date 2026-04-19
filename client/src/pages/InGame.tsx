@@ -1,12 +1,13 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
-import { ChevronLeft, ChevronRight, MapPin, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Check, BarChart2 } from 'lucide-react';
 import Header from '../components/Header';
 import ScoreBoard from '../components/ScoreBoard';
 import ShotInput from '../components/ShotInput';
 import EndResult from '../components/EndResult';
 import StoneTracker from '../components/StoneTracker';
 import { EarlyFinishDialog } from '../components/EarlyFinishDialog';
+import LiveStatsModal from '../components/LiveStatsModal';
 import { useGame, useFinishGame } from '../hooks/useGame';
 import { useCreateShot, useUpdateShot, useCreateEnd } from '../hooks/useShots';
 import { getShotInfo, getHammerForEnd } from '../lib/shotOrder';
@@ -43,6 +44,7 @@ export default function InGame() {
   const [showEndOfGameDialog, setShowEndOfGameDialog] = useState(false);
   const [showJumpDialog, setShowJumpDialog] = useState(false);
   const [showEarlyFinishDialog, setShowEarlyFinishDialog] = useState(false);
+  const [showLiveStats, setShowLiveStats] = useState(false);
   const [isEarlyFinishing, setIsEarlyFinishing] = useState(false);
   // Track if current viewed shot was edited
   const [isDirty, setIsDirty] = useState(false);
@@ -468,6 +470,12 @@ export default function InGame() {
           <ChevronLeft size={32} />
         </button>
         <button
+          onClick={() => setShowLiveStats(true)}
+          className="flex items-center justify-center text-primary transition-colors"
+        >
+          <BarChart2 size={28} />
+        </button>
+        <button
           onClick={handleNext}
           disabled={createShot.isPending || updateShot.isPending}
           className="flex items-center justify-center text-primary transition-colors disabled:opacity-40"
@@ -524,6 +532,13 @@ export default function InGame() {
           onClose={() => setShowJumpDialog(false)}
         />
       )}
+
+      {/* Live stats modal */}
+      <LiveStatsModal
+        gameId={gameId}
+        isOpen={showLiveStats}
+        onClose={() => setShowLiveStats(false)}
+      />
 
       {/* Early finish dialog */}
       <EarlyFinishDialog
