@@ -52,13 +52,13 @@ export default function Dashboard() {
       setIsExporting(true);
       setExportError(null);
 
-      const statsEntries = [] as Array<{ game: (typeof selectedGames)[number]; stats: Awaited<ReturnType<typeof api.getGameStats>> }>;
+      const detailedGames = [] as Array<Awaited<ReturnType<typeof api.getGame>>>;
       for (const game of selectedGames) {
-        const stats = await api.getGameStats(game.id);
-        statsEntries.push({ game, stats });
+        const detailedGame = await api.getGame(game.id);
+        detailedGames.push(detailedGame);
       }
 
-      await exportGamesToExcel(statsEntries);
+      await exportGamesToExcel(detailedGames);
       setIsExportMode(false);
       setSelectedGameIds([]);
     } catch (error) {

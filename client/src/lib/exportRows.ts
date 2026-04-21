@@ -1,60 +1,61 @@
-import type { Game, GameStats, PlayerStats, TeamSide } from '../types';
+import type { GameWithDetails, Shot, TeamSide } from '../types';
+import { POSITION_NAMES } from '../types';
 
 export interface ExportRow {
   'Игра': string;
+  'Дата': string;
   'Команда': string;
   'Позиция': string;
-  'Тип броска': 'Draw' | 'Take';
-  'Вращение': 'In-turn' | 'Out-turn';
-  'Количество': number;
-  '%': number;
-  'Вес для среднего': number;
+  'Номер игрока': number;
+  'Энд': number;
+  'Номер броска в энде': number;
+  'Тип броска': 'Draw' | 'Take' | '—';
+  'Вращение': 'In-turn' | 'Out-turn' | '—';
+  'Оценка': number | '—';
+  'Проброс': 'Да' | 'Нет';
 }
 
-const POSITION_NAMES: Record<number, string> = {
-  1: 'Лид',
-  2: 'Второй',
-  3: 'Третий',
-  4: 'Скип',
-};
-
-function formatGameLabel(game: Game): string {
-  const [year, month, day] = game.date.split('-');
-  const date = year && month && day ? `${day}.${month}.${year}` : game.date;
-  return `${game.team_home} — ${game.team_away} | ${date}`;
+function formatDate(date: string): string {
+  const [year, month, day] = date.split('-');
+  return year && month && day ? `${day}.${month}.${year}` : date;
 }
 
-function buildPlayerRows(game: Game, teamName: string, player: PlayerStats): ExportRow[] {
-  const position = POSITION_NAMES[player.position] ?? `Игрок ${player.position}`;
-
-  const combos = [
-    { shotType: 'Draw' as const, turn: 'In-turn' as const, count: player.draw_in_count, percent: player.inturn_draw_avg },
-    { shotType: 'Draw' as const, turn: 'Out-turn' as const, count: player.draw_out_count, percent: player.outturn_draw_avg },
-    { shotType: 'Take' as const, turn: 'In-turn' as const, count: player.takeout_in_count, percent: player.inturn_takeout_avg },
-    { shotType: 'Take' as const, turn: 'Out-turn' as const, count: player.takeout_out_count, percent: player.outturn_takeout_avg },
-  ];
-
-  return combos.map(({ shotType, turn, count, percent }) => ({
-    'Игра': formatGameLabel(game),
-    'Команда': teamName,
-    'Позиция': position,
-    'Тип броска': shotType,
-    'Вращение': turn,
-    'Количество': count,
-    '%': percent,
-    'Вес для среднего': count * percent,
-  }));
+function getTeamName(game: GameWithDetails, side: TeamSide): string {
+  return side === 'home' ? game.team_home : game.team_away;
 }
 
-function buildTeamRows(game: Game, stats: GameStats, side: TeamSide): ExportRow[] {
-  const teamName = side === 'home' ? game.team_home : game.team_away;
-  const players = side === 'home' ? stats.home.players : stats.away.players;
-  return players.flatMap((player) => buildPlayerRows(game, teamName, player));
+function formatShotType(shot: Shot): ExportRow['Тип броска'] {
+  if (shot.type === 'draw') return 'Draw';
+  if (shot.type === 'takeout') return 'Take';
+  return '—';
 }
 
-export function buildExportRows(entries: Array<{ game: Game; stats: GameStats }>): ExportRow[] {
-  return entries.flatMap(({ game, stats }) => [
-    ...buildTeamRows(game, stats, 'home'),
-    ...buildTeamRows(game, stats, 'away'),
-  ]);
+function formatTurn(shot: Shot): ExportRow['Вращение'] {
+  if (shot.turn === 'inturn') return 'In-turn';
+  if (shot.turn === 'outturn') return 'Out-turn';
+  return '—';
+}
+
+function buildShotRow(game: GameWithDetails, shot: Shot): ExportRow {
+  return {
+    'Игра': `${game.team_home} — ${game.team_away}`,
+    'Дата': formatDate(game.date),
+    'Команда': getTeamName(game, shot.team),
+    'Позиция': POSITION_NAMES[shot.player_number] ?? `Игрок ${shot.player_number}`,
+    'Номер игрока': shot.player_number,
+    'Энд': shot.end_number,
+    'Номер броска в энде': shot.shot_number,
+    'Тип броска': formatShotType(shot),
+    'Вращение': formatTurn(shot),
+    'Оценка': shot.score ?? '—',
+    'Проброс': shot.is_throwaway ? 'Да' : 'Нет',
+  };
+}
+
+export function buildExportRows(games: GameWithDetails[]): ExportRow[] {
+  return games.flatMap((game) =>
+    [...game.shots]
+      .sort((a, b) => a.end_number - b.end_number || a.shot_number - b.shot_number)
+      .map((shot) => buildShotRow(game, shot)),
+  );
 }
