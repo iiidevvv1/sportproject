@@ -1,18 +1,73 @@
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Target, Plus, ChevronRight } from 'lucide-react';
+import { Target, Plus, ChevronRight, FileSpreadsheet } from 'lucide-react';
 import Header from '../components/Header';
 import GameCard from '../components/GameCard';
 import { useGames } from '../hooks/useGame';
 import { useVersion } from '../hooks/useVersion';
 import { STONE_COLORS } from '../types';
+import * as api from '../api';
+import { exportGamesToExcel } from '../lib/exportExcel';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { data: games = [], isLoading } = useGames();
   const { version } = useVersion();
+  const [isExportMode, setIsExportMode] = useState(false);
+  const [selectedGameIds, setSelectedGameIds] = useState<number[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const activeGame = games.find((g) => g.status === 'active');
   const completedGames = games.filter((g) => g.status === 'finished');
+  const selectedCount = selectedGameIds.length;
+
+  const selectedGames = useMemo(
+    () => completedGames.filter((game) => selectedGameIds.includes(game.id)),
+    [completedGames, selectedGameIds],
+  );
+
+  const toggleGameSelection = (gameId: number) => {
+    setSelectedGameIds((prev) =>
+      prev.includes(gameId) ? prev.filter((id) => id !== gameId) : [...prev, gameId],
+    );
+  };
+
+  const handleStartExportMode = () => {
+    setExportError(null);
+    setSelectedGameIds([]);
+    setIsExportMode(true);
+  };
+
+  const handleCancelExportMode = () => {
+    setIsExportMode(false);
+    setSelectedGameIds([]);
+    setExportError(null);
+  };
+
+  const handleExport = async () => {
+    if (selectedGames.length === 0) return;
+
+    try {
+      setIsExporting(true);
+      setExportError(null);
+
+      const statsEntries = [] as Array<{ game: (typeof selectedGames)[number]; stats: Awaited<ReturnType<typeof api.getGameStats>> }>;
+      for (const game of selectedGames) {
+        const stats = await api.getGameStats(game.id);
+        statsEntries.push({ game, stats });
+      }
+
+      await exportGamesToExcel(statsEntries);
+      setIsExportMode(false);
+      setSelectedGameIds([]);
+    } catch (error) {
+      console.error(error);
+      setExportError('Не удалось собрать Excel. Попробуй ещё раз.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -32,6 +87,46 @@ export default function Dashboard() {
       />
 
       <main className="pt-20 px-6 py-8 space-y-8">
+        {completedGames.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-headline text-xs font-bold uppercase tracking-widest text-primary">ЭКСПОРТ</h3>
+              {!isExportMode ? (
+                <button
+                  onClick={handleStartExportMode}
+                  className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700"
+                >
+                  <FileSpreadsheet size={16} />
+                  Выгрузка Excel
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCancelExportMode}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-500"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    onClick={() => void handleExport()}
+                    disabled={selectedCount === 0 || isExporting}
+                    className="rounded-lg bg-primary px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isExporting ? 'Собираю .xlsx...' : 'Скачать .xlsx'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {isExportMode && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 space-y-1">
+                <div className="font-semibold text-slate-700">Выбрано игр: {selectedCount}</div>
+                <div>Отметь завершённые матчи, которые нужно включить в один Excel-файл.</div>
+                {exportError && <div className="text-red-600 font-medium">{exportError}</div>}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Active game section */}
         <section className="space-y-4">
@@ -108,15 +203,45 @@ export default function Dashboard() {
           <section className="space-y-4">
             <h3 className="font-headline text-xs font-bold uppercase tracking-widest text-primary">ПРОШЕДШИЕ МАТЧИ</h3>
             <div className="space-y-4">
-              {completedGames.map((game) => (
-                <GameCard
-                  key={game.id}
-                  game={game}
-                  ends={[]}
-                  totalHome={game.score_home}
-                  totalAway={game.score_away}
-                />
-              ))}
+              {completedGames.map((game) => {
+                if (!isExportMode) {
+                  return (
+                    <GameCard
+                      key={game.id}
+                      game={game}
+                      ends={[]}
+                      totalHome={game.score_home}
+                      totalAway={game.score_away}
+                    />
+                  );
+                }
+
+                const isSelected = selectedGameIds.includes(game.id);
+                return (
+                  <label
+                    key={game.id}
+                    className={`flex items-start gap-4 rounded-xl border p-4 bg-white shadow-sm ${isSelected ? 'border-primary ring-1 ring-primary/20' : 'border-slate-100'}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4"
+                      checked={isSelected}
+                      onChange={() => toggleGameSelection(game.id)}
+                      aria-label={`Выбрать игру ${game.team_home} — ${game.team_away}`}
+                    />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{game.date}</span>
+                        <span className="text-sm font-black text-primary">{game.score_home}:{game.score_away}</span>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="font-headline font-bold text-[#0d1c2e]">{game.team_home}</div>
+                        <div className="font-headline font-bold text-[#0d1c2e]">{game.team_away}</div>
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
             </div>
           </section>
         )}
